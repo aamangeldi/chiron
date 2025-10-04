@@ -1,0 +1,22 @@
+{
+  "name": "find-my-friends-electron",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "npx electron .",
+    "dev": "npx electron . --enable-logging"
+  },
+  "keywords": [
+    "electron",
+    "browser-history",
+    "social"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Social browsing app that tracks friends' internet browsing history",
+  "devDependencies": {
+    "electron": "^38.2.1",
+    "electron-rebuild": "^3.2.9",
+    "sqlite3": "^5.1.7"
+  }
+}

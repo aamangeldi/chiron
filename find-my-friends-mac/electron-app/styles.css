@@ -1,0 +1,259 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'VT323', monospace;
+  background-color: #1a2332;
+  color: #00ff88;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 100%;
+  padding: 20px;
+}
+
+/* Header */
+header {
+  margin-bottom: 20px;
+}
+
+.logo {
+  font-size: 32px;
+  color: #00ff88;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+
+.tagline {
+  font-size: 20px;
+  color: #00ddff;
+  letter-spacing: 1px;
+}
+
+/* Divider */
+.divider {
+  height: 3px;
+  background: linear-gradient(90deg, #00ff88 0%, #00ddff 100%);
+  margin: 20px 0;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+/* You Are Here Section */
+.you-section {
+  margin-bottom: 30px;
+}
+
+.section-header {
+  font-size: 24px;
+  color: #00ff88;
+  margin-bottom: 15px;
+  letter-spacing: 2px;
+}
+
+.current-site {
+  background: linear-gradient(135deg, #2a4563 0%, #1f3549 100%);
+  border: 2px solid #00ddff;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0, 221, 255, 0.3);
+}
+
+.site-url {
+  font-size: 28px;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.site-name {
+  font-size: 20px;
+  color: #00ddff;
+  letter-spacing: 1px;
+}
+
+/* Friends Section */
+.friends-section {
+  margin-top: 30px;
+}
+
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.friend-card {
+  background: linear-gradient(135deg, #2a4563 0%, #1f3549 100%);
+  border: 2px solid #00ddff;
+  padding: 20px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(0, 221, 255, 0.2);
+}
+
+.friend-card:hover {
+  border-color: #00ff88;
+  box-shadow: 0 0 25px rgba(0, 255, 136, 0.4);
+  transform: translateX(5px);
+}
+
+.friend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.friend-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: #2a3f5f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.friend-name {
+  font-size: 24px;
+  color: #00ff88;
+  letter-spacing: 1px;
+}
+
+.online-status {
+  width: 12px;
+  height: 12px;
+  background: #00ff88;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+}
+
+.timestamp {
+  font-size: 18px;
+  color: #7799aa;
+  letter-spacing: 1px;
+}
+
+.current-activity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.activity-icon {
+  font-size: 20px;
+}
+
+.activity-text {
+  font-size: 20px;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+.browsing-today {
+  margin-top: 15px;
+}
+
+.browsing-label {
+  font-size: 18px;
+  color: #00ddff;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.category-tags {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.category-tag {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 18px;
+  letter-spacing: 1px;
+  border: 2px solid;
+  transition: all 0.2s ease;
+}
+
+.category-tag.gaming {
+  background: rgba(0, 255, 255, 0.2);
+  border-color: #00ffff;
+  color: #00ffff;
+}
+
+.category-tag.video {
+  background: rgba(0, 255, 136, 0.2);
+  border-color: #00ff88;
+  color: #00ff88;
+}
+
+.category-tag.social {
+  background: rgba(0, 221, 255, 0.2);
+  border-color: #00ddff;
+  color: #00ddff;
+}
+
+.category-tag.news {
+  background: rgba(136, 136, 136, 0.2);
+  border-color: #888888;
+  color: #888888;
+}
+
+.category-tag.coding {
+  background: rgba(255, 0, 136, 0.2);
+  border-color: #ff0088;
+  color: #ff0088;
+}
+
+.category-tag.docs {
+  background: rgba(0, 255, 136, 0.2);
+  border-color: #00ff88;
+  color: #00ff88;
+}
+
+.category-tag.shopping {
+  background: rgba(255, 136, 0, 0.2);
+  border-color: #ff8800;
+  color: #ff8800;
+}
+
+.category-tag:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a2332;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00ddff;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff88;
+}
