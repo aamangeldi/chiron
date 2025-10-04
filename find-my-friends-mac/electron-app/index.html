@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find My Friends</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-content">
+        <div class="logo">🌐 Find My Friends</div>
+        <div class="tagline">See where friends are browsing</div>
+      </div>
+    </header>
+
+    <div class="divider"></div>
+
+    <section class="you-section">
+      <div class="section-header">📍 YOU ARE HERE</div>
+      <div class="current-site">
+        <div class="site-url">www.notion.com</div>
+        <div class="site-name">notion.com</div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="friends-section">
+      <div class="section-header">👥 FRIENDS ONLINE</div>
+      <div id="friendsList" class="friends-list">
+        <!-- Friends will be dynamically added here -->
+      </div>
+    </section>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
