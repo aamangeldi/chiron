@@ -80,7 +80,19 @@ DROP POLICY IF EXISTS "Users can create friendships" ON friendships;
 CREATE POLICY "Users can create friendships"
   ON friendships FOR INSERT
   TO authenticated
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (
+    auth.uid() = user_id
+    OR
+    EXISTS (
+      SELECT 1 FROM friend_requests
+      WHERE (
+        (friend_requests.from_user_id = auth.uid() AND friend_requests.to_user_id = user_id)
+        OR
+        (friend_requests.to_user_id = auth.uid() AND friend_requests.from_user_id = user_id)
+      )
+      AND friend_requests.status = 'accepted'
+    )
+  );
 
 DROP POLICY IF EXISTS "Users can delete friendships" ON friendships;
 CREATE POLICY "Users can delete friendships"

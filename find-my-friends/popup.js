@@ -167,17 +167,15 @@ async function loadFriendsLocations() {
       return;
     }
 
-    // Get friend user details
-    const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers();
+    // Transform locations into friend objects with emails
+    const friends = [];
 
-    if (usersError) {
-      console.error('Error fetching users:', usersError);
-      // Note: admin.listUsers() won't work from client. Need to create a profiles table or use alternative approach
-      // For now, we'll use locations without user details
-    }
+    for (const loc of locations) {
+      // Get email for each friend
+      const { data: email } = await supabaseClient.rpc('get_user_email_by_id', {
+        user_id: loc.user_id
+      });
 
-    // Transform locations into friend objects
-    const friends = locations.map(loc => {
       let domain;
       try {
         const url = new URL(loc.url);
@@ -186,18 +184,18 @@ async function loadFriendsLocations() {
         domain = loc.url;
       }
 
-      return {
-        name: loc.user_id.substring(0, 8), // Use part of user_id as placeholder name
+      friends.push({
+        name: email || loc.user_id.substring(0, 8),
         avatar: `https://i.pravatar.cc/150?u=${loc.user_id}`,
         url: loc.url,
         domain: domain,
-        title: domain, // We don't have title in DB
+        title: domain,
         favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
         timestamp: new Date(loc.last_updated).getTime(),
         isOnline: true,
-        browsingHistory: [] // Would need to track this separately
-      };
-    });
+        browsingHistory: []
+      });
+    }
 
     // Render friends
     renderFriends(friends);
