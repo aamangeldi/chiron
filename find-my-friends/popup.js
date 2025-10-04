@@ -1,13 +1,83 @@
 // Popup script to display current location and friends
+const SUPABASE_URL = 'https://rlhajpxbevywdurchyxq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ih8X9Pid8TBDBngnbx48rw_90hstEfL';
+
+// Custom storage adapter using Chrome storage API
+const chromeStorageAdapter = {
+  getItem: async (key) => {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([key], (result) => {
+        resolve(result[key] || null);
+      });
+    });
+  },
+  setItem: async (key, value) => {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [key]: value }, () => {
+        resolve();
+      });
+    });
+  },
+  removeItem: async (key) => {
+    return new Promise((resolve) => {
+      chrome.storage.local.remove([key], () => {
+        resolve();
+      });
+    });
+  }
+};
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storage: chromeStorageAdapter,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check authentication first
+  const { data: { user } } = await supabaseClient.auth.getUser();
+
+  if (!user) {
+    // Redirect to auth page if not logged in
+    window.location.href = 'auth.html';
+    return;
+  }
+
+  // Display user email
+  document.getElementById('user-email').textContent = user.email;
+
+  // Setup logout button
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'auth.html';
+  });
+
+  // Setup add friend button
+  document.getElementById('add-friend-btn').addEventListener('click', async () => {
+    await addFriend();
+  });
+
+  // Setup enter key for add friend input
+  document.getElementById('friend-email-input').addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+      await addFriend();
+    }
+  });
+
   // Load current user location
   loadMyLocation();
+
+  // Load friend requests
+  await loadFriendRequests();
 
   // Add click listeners to all friend items
   setupFriendClickHandlers();
 
-  // In a real app, you'd fetch friends' locations from a server
-  // loadFriendsLocations();
+  // Load real friends' locations from Supabase
+  await loadFriendsLocations();
 });
 
 function setupFriendClickHandlers() {
@@ -50,17 +120,105 @@ function openUrl(url) {
   chrome.tabs.create({ url: url });
 }
 
-// In a real implementation, you would fetch friends' locations from your backend
+// Fetch friends' locations from Supabase
 async function loadFriendsLocations() {
-  // Example API call
-  // const response = await fetch('https://your-api.com/friends/locations');
-  // const friends = await response.json();
-  // renderFriends(friends);
+  try {
+    // Check if user is authenticated
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+      console.log('User not authenticated. Cannot load friends.');
+      return;
+    }
+
+    // Get user's friendships
+    const { data: friendships, error: friendshipsError } = await supabaseClient
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', user.id);
+
+    if (friendshipsError) {
+      console.error('Error fetching friendships:', friendshipsError);
+      return;
+    }
+
+    if (!friendships || friendships.length === 0) {
+      console.log('No friends found.');
+      renderNoFriends();
+      return;
+    }
+
+    // Get friend IDs
+    const friendIds = friendships.map(f => f.friend_id);
+
+    // Get friends' current locations
+    const { data: locations, error: locationsError } = await supabaseClient
+      .from('user_locations')
+      .select('*')
+      .in('user_id', friendIds);
+
+    if (locationsError) {
+      console.error('Error fetching friend locations:', locationsError);
+      return;
+    }
+
+    // Get friend user details
+    const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers();
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      // Note: admin.listUsers() won't work from client. Need to create a profiles table or use alternative approach
+      // For now, we'll use locations without user details
+    }
+
+    // Transform locations into friend objects
+    const friends = locations.map(loc => {
+      let domain;
+      try {
+        const url = new URL(loc.url);
+        domain = url.hostname;
+      } catch (e) {
+        domain = loc.url;
+      }
+
+      return {
+        name: loc.user_id.substring(0, 8), // Use part of user_id as placeholder name
+        avatar: `https://i.pravatar.cc/150?u=${loc.user_id}`,
+        url: loc.url,
+        domain: domain,
+        title: domain, // We don't have title in DB
+        favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+        timestamp: new Date(loc.last_updated).getTime(),
+        isOnline: true,
+        browsingHistory: [] // Would need to track this separately
+      };
+    });
+
+    // Render friends
+    renderFriends(friends);
+  } catch (err) {
+    console.error('Failed to load friends locations:', err);
+  }
+}
+
+function renderNoFriends() {
+  const container = document.getElementById('friends-list');
+  container.innerHTML = `
+    <div class="section-label">👥 Friends Online</div>
+    <div style="padding: 20px; text-align: center; font-size: 6px; color: #666; text-shadow: 1px 1px 0px #000;">
+      No friends added yet. Add friends in Supabase to see their browsing locations!
+    </div>
+  `;
 }
 
 function renderFriends(friends) {
   const container = document.getElementById('friends-list');
   container.innerHTML = '<div class="section-label">👥 Friends Online</div>';
+
+  if (friends.length === 0) {
+    renderNoFriends();
+    return;
+  }
 
   friends.forEach(friend => {
     const friendItem = createFriendElement(friend);
@@ -183,6 +341,232 @@ function getTimeAgo(timestamp) {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+// Add friend by email
+async function addFriend() {
+  const emailInput = document.getElementById('friend-email-input');
+  const addButton = document.getElementById('add-friend-btn');
+  const email = emailInput.value.trim();
+
+  if (!email) {
+    alert('Please enter an email address');
+    return;
+  }
+
+  try {
+    addButton.disabled = true;
+    addButton.textContent = '...';
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    // Check if trying to add yourself
+    if (email === user.email) {
+      alert('You cannot add yourself as a friend');
+      return;
+    }
+
+    // Look up user by email using Supabase auth admin
+    // Since we can't use admin API from client, we'll need to use a different approach
+    // We'll create a helper function that queries by email via RPC or edge function
+    // For now, let's assume we have the user_id somehow
+
+    // Simple approach: create a public function or use edge function
+    // For MVP, we'll show an error and require user_id directly
+
+    // Better approach: Use Supabase RPC function
+    const { data: userData, error: userError } = await supabaseClient.rpc('get_user_id_by_email', {
+      user_email: email
+    });
+
+    if (userError || !userData) {
+      alert('User not found with that email');
+      console.error('Error finding user:', userError);
+      return;
+    }
+
+    const friendId = userData;
+
+    // Check if already friends
+    const { data: existingFriendship } = await supabaseClient
+      .from('friendships')
+      .select('*')
+      .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
+      .single();
+
+    if (existingFriendship) {
+      alert('You are already friends with this user');
+      return;
+    }
+
+    // Check if request already exists
+    const { data: existingRequest } = await supabaseClient
+      .from('friend_requests')
+      .select('*')
+      .eq('from_user_id', user.id)
+      .eq('to_user_id', friendId)
+      .eq('status', 'pending')
+      .single();
+
+    if (existingRequest) {
+      alert('Friend request already sent');
+      return;
+    }
+
+    // Create friend request
+    const { error: requestError } = await supabaseClient
+      .from('friend_requests')
+      .insert({
+        from_user_id: user.id,
+        to_user_id: friendId,
+        status: 'pending'
+      });
+
+    if (requestError) {
+      alert('Error sending friend request');
+      console.error('Error creating friend request:', requestError);
+      return;
+    }
+
+    alert('Friend request sent!');
+    emailInput.value = '';
+  } catch (err) {
+    console.error('Error adding friend:', err);
+    alert('An error occurred while sending friend request');
+  } finally {
+    addButton.disabled = false;
+    addButton.textContent = 'Add';
+  }
+}
+
+// Load friend requests
+async function loadFriendRequests() {
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    // Get pending requests sent to current user
+    const { data: requests, error } = await supabaseClient
+      .from('friend_requests')
+      .select('*, from_user_id')
+      .eq('to_user_id', user.id)
+      .eq('status', 'pending');
+
+    if (error) {
+      console.error('Error loading friend requests:', error);
+      return;
+    }
+
+    if (!requests || requests.length === 0) {
+      document.getElementById('friend-requests-section').style.display = 'none';
+      return;
+    }
+
+    // We need to get user emails for the requests
+    // This will require an RPC function or edge function
+    // For now, show user IDs
+    document.getElementById('friend-requests-section').style.display = 'block';
+    renderFriendRequests(requests);
+  } catch (err) {
+    console.error('Error loading friend requests:', err);
+  }
+}
+
+// Render friend requests
+async function renderFriendRequests(requests) {
+  const container = document.getElementById('friend-requests-list');
+  container.innerHTML = '';
+
+  for (const request of requests) {
+    // Get email for the user who sent the request
+    const { data: email, error } = await supabaseClient.rpc('get_user_email_by_id', {
+      user_id: request.from_user_id
+    });
+
+    const displayEmail = email || request.from_user_id;
+
+    const requestItem = document.createElement('div');
+    requestItem.className = 'request-item';
+    requestItem.innerHTML = `
+      <div class="request-email">${displayEmail}</div>
+      <div class="request-buttons">
+        <button class="accept-btn" data-request-id="${request.id}" data-from-user="${request.from_user_id}">Accept</button>
+        <button class="reject-btn" data-request-id="${request.id}">Reject</button>
+      </div>
+    `;
+    container.appendChild(requestItem);
+  }
+
+  // Setup accept/reject handlers
+  document.querySelectorAll('.accept-btn').forEach(btn => {
+    btn.addEventListener('click', () => acceptFriendRequest(btn.dataset.requestId, btn.dataset.fromUser));
+  });
+
+  document.querySelectorAll('.reject-btn').forEach(btn => {
+    btn.addEventListener('click', () => rejectFriendRequest(btn.dataset.requestId));
+  });
+}
+
+// Accept friend request
+async function acceptFriendRequest(requestId, fromUserId) {
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    // Update request status
+    const { error: updateError } = await supabaseClient
+      .from('friend_requests')
+      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (updateError) {
+      console.error('Error updating friend request:', updateError);
+      alert('Error accepting friend request');
+      return;
+    }
+
+    // Create bidirectional friendship
+    const { error: friendship1Error } = await supabaseClient
+      .from('friendships')
+      .insert({ user_id: user.id, friend_id: fromUserId });
+
+    const { error: friendship2Error } = await supabaseClient
+      .from('friendships')
+      .insert({ user_id: fromUserId, friend_id: user.id });
+
+    if (friendship1Error || friendship2Error) {
+      console.error('Error creating friendship:', friendship1Error || friendship2Error);
+      alert('Error creating friendship');
+      return;
+    }
+
+    // Reload requests and friends
+    await loadFriendRequests();
+    await loadFriendsLocations();
+  } catch (err) {
+    console.error('Error accepting friend request:', err);
+    alert('An error occurred while accepting friend request');
+  }
+}
+
+// Reject friend request
+async function rejectFriendRequest(requestId) {
+  try {
+    const { error } = await supabaseClient
+      .from('friend_requests')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (error) {
+      console.error('Error rejecting friend request:', error);
+      alert('Error rejecting friend request');
+      return;
+    }
+
+    // Reload requests
+    await loadFriendRequests();
+  } catch (err) {
+    console.error('Error rejecting friend request:', err);
+    alert('An error occurred while rejecting friend request');
+  }
 }
 
 // Listen for location updates

@@ -3,9 +3,11 @@
   "name": "Find My Friends",
   "version": "1.0.0",
   "description": "See where your friends are browsing on the internet right now",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvGdMkqR1wKM7wE1QF/H1lZbe1F/hX/L9PZlStsnnbJF3sMMK9e9BP5vmeRM+OlsgdYie0QqVNPWk0uoz/HjCK2O6KnKrR3LVI4LDpqgAtQm2BOg/QO/hPICNvn2eGHzcmKHjalNWuhbpThtZrofkYtVQlqTKPvPCTvgaibD7B6NEZ1r3L6fp2ziSKiqGC7b9dpSrgqYx4SZcq4WOU9eAUCcOOJ2tEivuVJewsV6l0O1NLl5G9O4cigdoO5i0ETi3DgbQKGqvI0QUPUh0jPN4KXMD5bMVZPui83Zg5l2Z3mm6Y38ycvXsWPN72Bxzs36OpIxa1SrUeZDj+EQ6j+aYDwIDAQAB",
   "permissions": [
     "tabs",
-    "storage"
+    "storage",
+    "identity"
   ],
   "host_permissions": [
     "<all_urls>"

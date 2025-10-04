@@ -1,4 +1,43 @@
-// Background script to track current tab and sync location
+// Background script to track current tab and sync location to Supabase
+importScripts('supabase.js');
+
+const SUPABASE_URL = 'https://rlhajpxbevywdurchyxq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ih8X9Pid8TBDBngnbx48rw_90hstEfL';
+
+// Custom storage adapter using Chrome storage API
+const chromeStorageAdapter = {
+  getItem: async (key) => {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([key], (result) => {
+        resolve(result[key] || null);
+      });
+    });
+  },
+  setItem: async (key, value) => {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [key]: value }, () => {
+        resolve();
+      });
+    });
+  },
+  removeItem: async (key) => {
+    return new Promise((resolve) => {
+      chrome.storage.local.remove([key], () => {
+        resolve();
+      });
+    });
+  }
+};
+
+const supabaseClient = self.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storage: chromeStorageAdapter,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+});
+
 let currentUrl = '';
 let currentTitle = '';
 
@@ -25,7 +64,7 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   }
 });
 
-function updateCurrentLocation(tab) {
+async function updateCurrentLocation(tab) {
   if (!tab || !tab.url) return;
 
   // Skip chrome:// and extension pages
@@ -53,17 +92,40 @@ function updateCurrentLocation(tab) {
     favicon: tab.favIconUrl || ''
   };
 
-  // Store current location
+  // Store current location locally
   chrome.storage.local.set({ myLocation: location });
 
-  // In a real app, you would send this to a server/backend
-  // syncLocationToServer(location);
+  // Sync location to Supabase
+  await syncLocationToSupabase(location);
 }
 
-// Simulate syncing to server (placeholder)
-function syncLocationToServer(location) {
-  // This would be your API call to sync location with friends
-  console.log('Syncing location:', location);
+async function syncLocationToSupabase(location) {
+  try {
+    // Check if user is authenticated
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+      console.log('User not authenticated. Skipping sync.');
+      return;
+    }
+
+    // Upsert user location to Supabase
+    const { error } = await supabaseClient
+      .from('user_locations')
+      .upsert({
+        user_id: user.id,
+        url: location.url,
+        last_updated: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('Error syncing location to Supabase:', error);
+    } else {
+      console.log('Location synced to Supabase:', location.url);
+    }
+  } catch (err) {
+    console.error('Failed to sync location:', err);
+  }
 }
 
 // Initialize on startup

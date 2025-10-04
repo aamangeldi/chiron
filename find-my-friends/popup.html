@@ -40,6 +40,167 @@
             text-shadow: 1px 1px 0px #000;
         }
 
+        .user-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 2px solid #16a085;
+        }
+
+        .user-email {
+            font-size: 5px;
+            color: #aaaaaa;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .logout-btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 5px;
+            padding: 4px 8px;
+            background: #ff0066;
+            border: 2px solid #000;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 2px 2px 0px #000;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .logout-btn:hover {
+            background: #ff3388;
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px #000;
+        }
+
+        .logout-btn:active {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        .add-friend-section {
+            padding: 12px;
+            background: #1a1a2e;
+            border-bottom: 3px solid #16a085;
+        }
+
+        .add-friend-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .add-friend-input {
+            flex: 1;
+            padding: 8px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 6px;
+            background: #0f3460;
+            border: 2px solid #16a085;
+            color: #ffffff;
+            outline: none;
+        }
+
+        .add-friend-input:focus {
+            border-color: #00ff00;
+        }
+
+        .add-friend-btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 6px;
+            padding: 8px 12px;
+            background: #16a085;
+            border: 2px solid #000;
+            color: #000;
+            cursor: pointer;
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .add-friend-btn:hover {
+            background: #00ff00;
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px #000;
+        }
+
+        .add-friend-btn:active {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        .add-friend-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .friend-requests-section {
+            padding: 12px;
+            background: #16213e;
+            border-bottom: 3px solid #16a085;
+        }
+
+        .request-item {
+            background: #0f3460;
+            border: 2px solid #ffaa00;
+            padding: 8px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .request-email {
+            font-size: 6px;
+            color: #ffffff;
+            text-shadow: 1px 1px 0px #000;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .request-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .accept-btn, .reject-btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 5px;
+            padding: 4px 8px;
+            border: 2px solid #000;
+            cursor: pointer;
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .accept-btn {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .accept-btn:hover {
+            background: #00ffff;
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px #000;
+        }
+
+        .reject-btn {
+            background: #ff0066;
+            color: #ffffff;
+        }
+
+        .reject-btn:hover {
+            background: #ff3388;
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px #000;
+        }
+
+        .accept-btn:active, .reject-btn:active {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0px #000;
+        }
+
         .my-location {
             padding: 12px;
             background: #1a1a2e;
@@ -265,6 +426,23 @@
     <div class="header">
         <div class="title">🌐 Find My Friends</div>
         <div class="subtitle">See where friends are browsing</div>
+        <div class="user-info">
+            <div class="user-email" id="user-email">Loading...</div>
+            <button class="logout-btn" id="logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <div class="add-friend-section">
+        <div class="section-label">➕ Add Friend</div>
+        <div class="add-friend-form">
+            <input type="email" class="add-friend-input" id="friend-email-input" placeholder="friend@example.com">
+            <button class="add-friend-btn" id="add-friend-btn">Add</button>
+        </div>
+    </div>
+
+    <div class="friend-requests-section" id="friend-requests-section" style="display: none;">
+        <div class="section-label">📬 Friend Requests</div>
+        <div id="friend-requests-list"></div>
     </div>
 
     <div class="my-location">
@@ -281,97 +459,9 @@
     <div class="friends-container" id="friends-list">
         <!-- Friends will be populated here -->
         <div class="section-label">👥 Friends Online</div>
-
-        <!-- Sample friend data (in real app, this would come from server) -->
-        <div class="friend-item" data-url="https://youtube.com">
-            <div class="friend-header">
-                <img class="friend-avatar" src="https://i.pravatar.cc/150?img=12" alt="Alex M.">
-                <div class="friend-name">Alex M.</div>
-                <span class="status-indicator"></span>
-                <div class="friend-timestamp">2m ago</div>
-            </div>
-            <div class="friend-location">
-                <img class="friend-favicon" src="https://www.youtube.com/favicon.ico" alt="">
-                <div class="friend-url">youtube.com - Watching RL tutorials</div>
-            </div>
-            <div class="browsing-heatmap">
-                <div class="heatmap-label">Browsing today</div>
-                <div class="category-heatmap">
-                    <div class="category-tag level-4">🎮 Gaming</div>
-                    <div class="category-tag level-3">📺 Video</div>
-                    <div class="category-tag level-2">💬 Social</div>
-                    <div class="category-tag level-1">📰 News</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="friend-item" data-url="https://github.com">
-            <div class="friend-header">
-                <img class="friend-avatar" src="https://i.pravatar.cc/150?img=45" alt="Sarah L.">
-                <div class="friend-name">Sarah L.</div>
-                <span class="status-indicator"></span>
-                <div class="friend-timestamp">5m ago</div>
-            </div>
-            <div class="friend-location">
-                <img class="friend-favicon" src="https://github.com/favicon.ico" alt="">
-                <div class="friend-url">github.com - Anthropic Claude repo</div>
-            </div>
-            <div class="browsing-heatmap">
-                <div class="heatmap-label">Browsing today</div>
-                <div class="category-heatmap">
-                    <div class="category-tag level-4">💻 Coding</div>
-                    <div class="category-tag level-3">📚 Docs</div>
-                    <div class="category-tag level-2">💬 Social</div>
-                    <div class="category-tag level-1">🛍️ Shopping</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="friend-item" data-url="https://nytimes.com">
-            <div class="friend-header">
-                <img class="friend-avatar" src="https://i.pravatar.cc/150?img=33" alt="James K.">
-                <div class="friend-name">James K.</div>
-                <span class="status-indicator"></span>
-                <div class="friend-timestamp">12m ago</div>
-            </div>
-            <div class="friend-location">
-                <img class="friend-favicon" src="https://www.nytimes.com/favicon.ico" alt="">
-                <div class="friend-url">nytimes.com - Sports - Spurs match recap</div>
-            </div>
-            <div class="browsing-heatmap">
-                <div class="heatmap-label">Browsing today</div>
-                <div class="category-heatmap">
-                    <div class="category-tag level-3">⚽ Sports</div>
-                    <div class="category-tag level-3">📰 News</div>
-                    <div class="category-tag level-2">💬 Social</div>
-                    <div class="category-tag level-1">📧 Email</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="friend-item" data-url="https://notion.so">
-            <div class="friend-header">
-                <img class="friend-avatar" src="https://i.pravatar.cc/150?img=47" alt="Emma R.">
-                <div class="friend-name">Emma R.</div>
-                <span class="status-indicator away"></span>
-                <div class="friend-timestamp">23m ago</div>
-            </div>
-            <div class="friend-location">
-                <img class="friend-favicon" src="https://www.notion.so/favicon.ico" alt="">
-                <div class="friend-url">notion.so - Project planning docs</div>
-            </div>
-            <div class="browsing-heatmap">
-                <div class="heatmap-label">Browsing today</div>
-                <div class="category-heatmap">
-                    <div class="category-tag level-2">📝 Productivity</div>
-                    <div class="category-tag level-2">💬 Social</div>
-                    <div class="category-tag level-1">📰 News</div>
-                    <div class="category-tag level-1">🛍️ Shopping</div>
-                </div>
-            </div>
-        </div>
     </div>
 
+    <script src="supabase.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find My Friends - Sign In</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 360px;
+            min-height: 500px;
+            font-family: 'Press Start 2P', monospace;
+            background: #0f3460;
+            color: #ffffff;
+        }
+
+        .header {
+            padding: 16px;
+            background: #16213e;
+            border-bottom: 4px solid #16a085;
+        }
+
+        .title {
+            font-size: 10px;
+            color: #00ff00;
+            text-shadow: 2px 2px 0px #000;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 6px;
+            color: #00ffff;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .auth-container {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 6px;
+            color: #00ffff;
+            margin-bottom: 6px;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            background: #1a1a2e;
+            border: 2px solid #16a085;
+            color: #ffffff;
+            outline: none;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: #00ff00;
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            background: #16a085;
+            border: 3px solid #000;
+            color: #000;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px #000;
+            margin-bottom: 10px;
+        }
+
+        .button:hover {
+            background: #00ff00;
+            transform: translate(-1px, -1px);
+            box-shadow: 5px 5px 0px #000;
+        }
+
+        .button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .button.secondary {
+            background: #0f3460;
+            border-color: #16a085;
+            color: #00ffff;
+        }
+
+        .button.secondary:hover {
+            background: #16213e;
+            color: #00ff00;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 6px;
+            color: #666;
+        }
+
+        .message {
+            font-size: 6px;
+            padding: 10px;
+            margin-bottom: 16px;
+            border: 2px solid;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .message.error {
+            background: rgba(255, 0, 102, 0.2);
+            border-color: #ff0066;
+            color: #ff0066;
+        }
+
+        .message.success {
+            background: rgba(0, 255, 0, 0.2);
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+
+        .message.info {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+
+        #status {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">🌐 Find My Friends</div>
+        <div class="subtitle">Authentication Required</div>
+    </div>
+
+    <div class="auth-container">
+        <div id="status" class="message"></div>
+
+        <button type="button" class="button" id="google-btn" style="background: #4285f4; color: white;">
+            Sign in with Google
+        </button>
+
+        <div class="divider">────────────────</div>
+
+        <div style="font-size: 5px; color: #666; line-height: 1.6; text-shadow: 1px 1px 0px #000;">
+            Sign in to sync your browsing location with friends and see where they're exploring the web!
+        </div>
+    </div>
+
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>

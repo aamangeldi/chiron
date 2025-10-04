@@ -1,0 +1,9 @@
+node_modules
+lib/
+key.pem
+package.json
+package-lock.json
+supabase-config.js
+create-icons.html
+callback.html
+SETUP.md
