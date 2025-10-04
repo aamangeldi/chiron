@@ -78,6 +78,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load real friends' locations from Supabase
   await loadFriendsLocations();
+
+  // Poll for friends' location updates every 5 seconds
+  setInterval(async () => {
+    await loadFriendsLocations();
+  }, 5000);
 });
 
 function setupFriendClickHandlers() {
@@ -465,7 +470,7 @@ async function loadFriendRequests() {
     // This will require an RPC function or edge function
     // For now, show user IDs
     document.getElementById('friend-requests-section').style.display = 'block';
-    renderFriendRequests(requests);
+    await renderFriendRequests(requests);
   } catch (err) {
     console.error('Error loading friend requests:', err);
   }
