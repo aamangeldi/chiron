@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfoShare Widget - Desktop Mockup</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        body {
+            font-family: 'Press Start 2P', monospace;
+            background: transparent;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            -webkit-app-region: drag;
+        }
+
+        .widget {
+            width: 100vw;
+            height: 100vh;
+            background: #0f3460;
+            border: 4px solid #16213e;
+            box-shadow: 8px 8px 0px #000,
+                        inset 0 0 0 2px #16a085;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 12px 16px;
+            background: #16213e;
+            color: #00ff00;
+            border-bottom: 4px solid #16a085;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            -webkit-app-region: drag;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 8px;
+            -webkit-app-region: no-drag;
+        }
+
+        .control-button {
+            width: 20px;
+            height: 20px;
+            background: #000;
+            border: 2px solid #16a085;
+            color: #00ffff;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-family: monospace;
+        }
+
+        .control-button:hover {
+            background: #16a085;
+            color: #000;
+        }
+
+        .control-button.close {
+            border-color: #ff0066;
+            color: #ff0066;
+        }
+
+        .control-button.close:hover {
+            background: #ff0066;
+            color: #fff;
+        }
+
+        .feed-title {
+            font-size: 10px;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .feed-meta {
+            font-size: 6px;
+            color: #00ffff;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .topics-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            background: #0f3460;
+            -webkit-app-region: no-drag;
+        }
+
+        .topic-button {
+            background: #1a1a2e;
+            margin-bottom: 12px;
+            padding: 14px;
+            border: 3px solid #16a085;
+            box-shadow: 4px 4px 0px #000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: none;
+            -webkit-app-region: no-drag;
+        }
+
+        .topic-button:hover {
+            border-color: #00ff00;
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px #000;
+        }
+
+        .topic-button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .topic-icon {
+            font-size: 24px;
+            filter: contrast(1.5);
+        }
+
+        .topic-name {
+            flex: 1;
+            font-size: 8px;
+            color: #ffffff;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .topic-status {
+            font-size: 6px;
+            color: #00ffff;
+            background: #000;
+            padding: 4px 8px;
+            border: 2px solid #00ffff;
+            text-shadow: 1px 1px 0px #003333;
+        }
+
+        .summary-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .summary-content {
+            width: 500px;
+            max-height: 80vh;
+            background: #0f3460;
+            border: 4px solid #16a085;
+            box-shadow: 8px 8px 0px #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .summary-header {
+            padding: 16px;
+            background: #16213e;
+            color: #00ff00;
+            border-bottom: 4px solid #16a085;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-title {
+            font-size: 10px;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .close-button {
+            font-size: 16px;
+            color: #ff0066;
+            cursor: pointer;
+            background: #000;
+            border: 2px solid #ff0066;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+        }
+
+        .close-button:hover {
+            background: #ff0066;
+            color: #000;
+        }
+
+        .summary-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #1a1a2e;
+        }
+
+        .summary-section {
+            margin-bottom: 16px;
+        }
+
+        .summary-label {
+            font-size: 6px;
+            color: #00ffff;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .summary-text {
+            font-size: 7px;
+            color: #ffffff;
+            line-height: 1.8;
+            text-shadow: 1px 1px 0px #000;
+            border-left: 3px solid #16a085;
+            padding-left: 10px;
+        }
+
+        .summary-source {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .source-avatar {
+            width: 20px;
+            height: 20px;
+            background: #00ff00;
+            border: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-size: 6px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .source-text {
+            font-size: 6px;
+            color: #aaaaaa;
+            line-height: 1.6;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .summary-footer {
+            border-top: 3px solid #16a085;
+            padding-top: 12px;
+        }
+
+        .summary-meta {
+            font-size: 5px;
+            color: #666666;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .add-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            background: #ff0066;
+            border: 4px solid #000;
+            box-shadow: 4px 4px 0px #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            transition: none;
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .add-button:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px #000;
+            background: #ff3385;
+        }
+
+        .add-button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+            border: 2px solid #16a085;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #16a085;
+            border: 2px solid #000;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00ff00;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <div class="header">
+            <div class="header-left">
+                <div class="feed-title">⚡ InfoShare</div>
+            </div>
+            <div class="header-controls">
+                <div class="control-button" id="collapse-btn" title="Collapse">−</div>
+                <div class="control-button close" id="close-btn" title="Close">✕</div>
+            </div>
+        </div>
+
+        <div class="topics-container">
+            <!-- Topic Buttons -->
+            <div class="topic-button" onclick="showSummary('spurs')">
+                <div class="topic-icon">⚽</div>
+                <div class="topic-name">Tottenham Hotspur</div>
+                <div class="topic-status">3 new</div>
+            </div>
+
+            <div class="topic-button" onclick="showSummary('ai-safety')">
+                <div class="topic-icon">🛡️</div>
+                <div class="topic-name">AI Safety</div>
+                <div class="topic-status">7 new</div>
+            </div>
+
+            <div class="topic-button" onclick="showSummary('rl')">
+                <div class="topic-icon">🤖</div>
+                <div class="topic-name">Reinforcement Learning</div>
+                <div class="topic-status">2 new</div>
+            </div>
+
+            <div class="topic-button" onclick="showSummary('web3')">
+                <div class="topic-icon">🌐</div>
+                <div class="topic-name">Web3 & Crypto</div>
+                <div class="topic-status">5 new</div>
+            </div>
+
+            <div class="topic-button" onclick="showSummary('cooking')">
+                <div class="topic-icon">🍳</div>
+                <div class="topic-name">Cooking Recipes</div>
+                <div class="topic-status">1 new</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Modal (hidden by default) -->
+    <div class="summary-modal" id="summary-modal" style="display: none;">
+        <div class="summary-content">
+            <div class="summary-header">
+                <div class="summary-title" id="summary-title">🛡️ AI Safety</div>
+                <div class="close-button" onclick="closeSummary()">✕</div>
+            </div>
+            <div class="summary-body">
+                <div class="summary-section">
+                    <div class="summary-label">Latest Updates</div>
+                    <div class="summary-text" id="summary-updates">
+                        Recent developments in AI safety include new interpretability research from Anthropic showing how neural networks form concepts. OpenAI released updated safety guidelines for GPT-4. The AI Safety Summit in Seoul focused on international cooperation for AI governance.
+                    </div>
+                </div>
+                <div class="summary-section">
+                    <div class="summary-label">From Your Friends</div>
+                    <div id="summary-friends">
+                        <div class="summary-source">
+                            <div class="source-avatar">SL</div>
+                            <div class="source-text">Sarah shared: "Constitutional AI paper - must read!"</div>
+                        </div>
+                        <div class="summary-source">
+                            <div class="source-avatar">AM</div>
+                            <div class="source-text">Alex shared: "New alignment research from DeepMind"</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-footer">
+                    <div class="summary-meta" id="summary-meta">Updated 2h ago • 7 sources</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="add-button">+</div>
+
+    <script>
+        const summaries = {
+            'spurs': {
+                icon: '⚽',
+                title: 'Tottenham Hotspur',
+                latestUpdates: 'Spurs secured a crucial 2-1 victory against Arsenal in the North London Derby. Son Heung-min scored the winner in the 78th minute. Manager Ange Postecoglou praised the team\'s tactical discipline. The win moves Tottenham to 4th place in the Premier League table. Next match: Spurs vs Manchester City at the Etihad.',
+                friends: [
+                    { avatar: 'JK', text: 'James shared: "Son\'s goal was absolutely brilliant! COYS!"' },
+                    { avatar: 'EM', text: 'Emma shared: "Tactical analysis of the derby formation changes"' },
+                    { avatar: 'RL', text: 'Ryan shared: "Season ticket availability for next month\'s matches"' }
+                ],
+                meta: 'Updated 1h ago • 3 sources'
+            },
+            'ai-safety': {
+                icon: '🛡️',
+                title: 'AI Safety',
+                latestUpdates: 'Recent developments in AI safety include new interpretability research from Anthropic showing how neural networks form concepts. OpenAI released updated safety guidelines for GPT-4. The AI Safety Summit in Seoul focused on international cooperation for AI governance. DeepMind published breakthrough work on reward modeling and alignment.',
+                friends: [
+                    { avatar: 'SL', text: 'Sarah shared: "Constitutional AI paper - must read!"' },
+                    { avatar: 'AM', text: 'Alex shared: "New alignment research from DeepMind"' }
+                ],
+                meta: 'Updated 2h ago • 7 sources'
+            },
+            'rl': {
+                icon: '🤖',
+                title: 'Reinforcement Learning',
+                latestUpdates: 'New multi-agent RL framework released by OpenAI for training cooperative agents. Researchers at Berkeley published results showing sample-efficient RL in robotics. PPO variants continue to dominate in real-world applications. AlphaGo\'s successor, AlphaZero, demonstrates new transfer learning capabilities across different game domains.',
+                friends: [
+                    { avatar: 'DK', text: 'David shared: "Tutorial: Implementing PPO from scratch"' },
+                    { avatar: 'MZ', text: 'Maria shared: "Deep RL course by Sergey Levine - Lecture 10"' }
+                ],
+                meta: 'Updated 5h ago • 2 sources'
+            },
+            'web3': {
+                icon: '🌐',
+                title: 'Web3 & Crypto',
+                latestUpdates: 'Ethereum\'s Dencun upgrade successfully deployed, reducing Layer 2 transaction costs by 90%. Bitcoin ETF approval drives institutional adoption. New DeFi protocols focusing on real-world asset tokenization gain traction. Regulatory frameworks evolve in the EU with MiCA implementation. Zero-knowledge proofs see breakthrough efficiency improvements.',
+                friends: [
+                    { avatar: 'TC', text: 'Tom shared: "Analysis of Ethereum L2 scalability improvements"' },
+                    { avatar: 'NK', text: 'Nina shared: "Guide to new DeFi yield strategies"' },
+                    { avatar: 'BW', text: 'Ben shared: "zk-SNARKs explained for developers"' },
+                    { avatar: 'LH', text: 'Lisa shared: "MiCA regulation breakdown for projects"' }
+                ],
+                meta: 'Updated 3h ago • 5 sources'
+            },
+            'cooking': {
+                icon: '🍳',
+                title: 'Cooking Recipes',
+                latestUpdates: 'Trending this week: Korean BBQ at home with homemade gochujang marinade. Spring vegetable risotto featuring asparagus and peas. Sourdough focaccia with rosemary and sea salt. One-pot Mediterranean chicken with olives and artichokes. No-churn ice cream variations for the upcoming season.',
+                friends: [
+                    { avatar: 'GR', text: 'Grace shared: "Perfect pasta carbonara - traditional Roman recipe"' }
+                ],
+                meta: 'Updated 1d ago • 1 source'
+            }
+        };
+
+        function showSummary(topic) {
+            const data = summaries[topic];
+            const modal = document.getElementById('summary-modal');
+
+            // Update modal content
+            document.getElementById('summary-title').innerHTML = `${data.icon} ${data.title}`;
+            document.getElementById('summary-updates').textContent = data.latestUpdates;
+
+            const friendsContainer = document.getElementById('summary-friends');
+            friendsContainer.innerHTML = '';
+            data.friends.forEach(friend => {
+                const sourceDiv = document.createElement('div');
+                sourceDiv.className = 'summary-source';
+                sourceDiv.innerHTML = `
+                    <div class="source-avatar">${friend.avatar}</div>
+                    <div class="source-text">${friend.text}</div>
+                `;
+                friendsContainer.appendChild(sourceDiv);
+            });
+
+            document.getElementById('summary-meta').textContent = data.meta;
+
+            modal.style.display = 'flex';
+        }
+
+        function closeSummary() {
+            document.getElementById('summary-modal').style.display = 'none';
+        }
+
+        // Electron IPC for collapse/expand
+        const { ipcRenderer } = require('electron');
+
+        document.getElementById('collapse-btn').addEventListener('click', () => {
+            const btn = document.getElementById('collapse-btn');
+            if (btn.textContent === '−') {
+                btn.textContent = '+';
+                btn.title = 'Expand';
+            } else {
+                btn.textContent = '−';
+                btn.title = 'Collapse';
+            }
+            ipcRenderer.send('toggle-collapse');
+        });
+
+        document.getElementById('close-btn').addEventListener('click', () => {
+            ipcRenderer.send('close-window');
+        });
+    </script>
+</body>
+</html>
