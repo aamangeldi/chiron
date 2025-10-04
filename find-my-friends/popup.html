@@ -173,6 +173,58 @@
             text-overflow: ellipsis;
         }
 
+        .browsing-heatmap {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #16a085;
+        }
+
+        .heatmap-label {
+            font-size: 5px;
+            color: #aaaaaa;
+            text-shadow: 1px 1px 0px #000;
+            margin-bottom: 4px;
+        }
+
+        .category-heatmap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .category-tag {
+            font-size: 5px;
+            padding: 3px 5px;
+            border: 1px solid #000;
+            background: #0f3460;
+            color: #666666;
+            text-shadow: 1px 1px 0px #000;
+            white-space: nowrap;
+        }
+
+        .category-tag.level-1 {
+            background: #1a4d2e;
+            color: #888888;
+        }
+
+        .category-tag.level-2 {
+            background: #16a085;
+            color: #cccccc;
+        }
+
+        .category-tag.level-3 {
+            background: #00ff00;
+            color: #000000;
+            font-weight: bold;
+        }
+
+        .category-tag.level-4 {
+            background: #00ffff;
+            color: #000000;
+            font-weight: bold;
+            box-shadow: 0 0 3px #00ffff;
+        }
+
         .status-indicator {
             width: 8px;
             height: 8px;
@@ -231,7 +283,7 @@
         <div class="section-label">👥 Friends Online</div>
 
         <!-- Sample friend data (in real app, this would come from server) -->
-        <div class="friend-item" onclick="openUrl('https://youtube.com')">
+        <div class="friend-item" data-url="https://youtube.com">
             <div class="friend-header">
                 <img class="friend-avatar" src="https://i.pravatar.cc/150?img=12" alt="Alex M.">
                 <div class="friend-name">Alex M.</div>
@@ -242,9 +294,18 @@
                 <img class="friend-favicon" src="https://www.youtube.com/favicon.ico" alt="">
                 <div class="friend-url">youtube.com - Watching RL tutorials</div>
             </div>
+            <div class="browsing-heatmap">
+                <div class="heatmap-label">Browsing today</div>
+                <div class="category-heatmap">
+                    <div class="category-tag level-4">🎮 Gaming</div>
+                    <div class="category-tag level-3">📺 Video</div>
+                    <div class="category-tag level-2">💬 Social</div>
+                    <div class="category-tag level-1">📰 News</div>
+                </div>
+            </div>
         </div>
 
-        <div class="friend-item" onclick="openUrl('https://github.com')">
+        <div class="friend-item" data-url="https://github.com">
             <div class="friend-header">
                 <img class="friend-avatar" src="https://i.pravatar.cc/150?img=45" alt="Sarah L.">
                 <div class="friend-name">Sarah L.</div>
@@ -255,9 +316,18 @@
                 <img class="friend-favicon" src="https://github.com/favicon.ico" alt="">
                 <div class="friend-url">github.com - Anthropic Claude repo</div>
             </div>
+            <div class="browsing-heatmap">
+                <div class="heatmap-label">Browsing today</div>
+                <div class="category-heatmap">
+                    <div class="category-tag level-4">💻 Coding</div>
+                    <div class="category-tag level-3">📚 Docs</div>
+                    <div class="category-tag level-2">💬 Social</div>
+                    <div class="category-tag level-1">🛍️ Shopping</div>
+                </div>
+            </div>
         </div>
 
-        <div class="friend-item" onclick="openUrl('https://nytimes.com')">
+        <div class="friend-item" data-url="https://nytimes.com">
             <div class="friend-header">
                 <img class="friend-avatar" src="https://i.pravatar.cc/150?img=33" alt="James K.">
                 <div class="friend-name">James K.</div>
@@ -268,9 +338,18 @@
                 <img class="friend-favicon" src="https://www.nytimes.com/favicon.ico" alt="">
                 <div class="friend-url">nytimes.com - Sports - Spurs match recap</div>
             </div>
+            <div class="browsing-heatmap">
+                <div class="heatmap-label">Browsing today</div>
+                <div class="category-heatmap">
+                    <div class="category-tag level-3">⚽ Sports</div>
+                    <div class="category-tag level-3">📰 News</div>
+                    <div class="category-tag level-2">💬 Social</div>
+                    <div class="category-tag level-1">📧 Email</div>
+                </div>
+            </div>
         </div>
 
-        <div class="friend-item" onclick="openUrl('https://notion.so')">
+        <div class="friend-item" data-url="https://notion.so">
             <div class="friend-header">
                 <img class="friend-avatar" src="https://i.pravatar.cc/150?img=47" alt="Emma R.">
                 <div class="friend-name">Emma R.</div>
@@ -280,6 +359,15 @@
             <div class="friend-location">
                 <img class="friend-favicon" src="https://www.notion.so/favicon.ico" alt="">
                 <div class="friend-url">notion.so - Project planning docs</div>
+            </div>
+            <div class="browsing-heatmap">
+                <div class="heatmap-label">Browsing today</div>
+                <div class="category-heatmap">
+                    <div class="category-tag level-2">📝 Productivity</div>
+                    <div class="category-tag level-2">💬 Social</div>
+                    <div class="category-tag level-1">📰 News</div>
+                    <div class="category-tag level-1">🛍️ Shopping</div>
+                </div>
             </div>
         </div>
     </div>

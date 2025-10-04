@@ -3,9 +3,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load current user location
   loadMyLocation();
 
+  // Add click listeners to all friend items
+  setupFriendClickHandlers();
+
   // In a real app, you'd fetch friends' locations from a server
   // loadFriendsLocations();
 });
+
+function setupFriendClickHandlers() {
+  const friendItems = document.querySelectorAll('.friend-item');
+  friendItems.forEach(item => {
+    const url = item.getAttribute('data-url');
+    if (url) {
+      item.addEventListener('click', () => openUrl(url));
+      item.style.cursor = 'pointer';
+    }
+  });
+}
 
 async function loadMyLocation() {
   try {
@@ -57,14 +71,17 @@ function renderFriends(friends) {
 function createFriendElement(friend) {
   const div = document.createElement('div');
   div.className = 'friend-item';
-  div.onclick = () => openUrl(friend.url);
+  div.setAttribute('data-url', friend.url);
+  div.style.cursor = 'pointer';
+  div.addEventListener('click', () => openUrl(friend.url));
 
   const statusClass = friend.isOnline ? '' : 'offline';
   const timeAgo = getTimeAgo(friend.timestamp);
+  const heatmapCells = generateHeatmapCells(friend.browsingHistory || []);
 
   div.innerHTML = `
     <div class="friend-header">
-      <div class="friend-avatar">${friend.initials}</div>
+      <img class="friend-avatar" src="${friend.avatar}" alt="${friend.name}">
       <div class="friend-name">${friend.name}</div>
       <span class="status-indicator ${statusClass}"></span>
       <div class="friend-timestamp">${timeAgo}</div>
@@ -73,9 +90,90 @@ function createFriendElement(friend) {
       <img class="friend-favicon" src="${friend.favicon}" alt="">
       <div class="friend-url">${friend.domain} - ${friend.title}</div>
     </div>
+    <div class="browsing-heatmap">
+      <div class="heatmap-label">Browsing today</div>
+      <div class="category-heatmap">
+        ${heatmapCells}
+      </div>
+    </div>
   `;
 
   return div;
+}
+
+function generateHeatmapCells(browsingHistory) {
+  // Category mapping based on domain patterns
+  const categoryMap = {
+    'youtube.com': 'Video',
+    'netflix.com': 'Video',
+    'twitch.tv': 'Video',
+    'github.com': 'Coding',
+    'stackoverflow.com': 'Coding',
+    'gitlab.com': 'Coding',
+    'twitter.com': 'Social',
+    'facebook.com': 'Social',
+    'instagram.com': 'Social',
+    'reddit.com': 'Social',
+    'nytimes.com': 'News',
+    'cnn.com': 'News',
+    'bbc.com': 'News',
+    'notion.so': 'Productivity',
+    'google.com/docs': 'Productivity',
+    'slack.com': 'Productivity',
+    'amazon.com': 'Shopping',
+    'gmail.com': 'Email',
+  };
+
+  const categoryIcons = {
+    'Video': '📺',
+    'Coding': '💻',
+    'Social': '💬',
+    'News': '📰',
+    'Productivity': '📝',
+    'Shopping': '🛍️',
+    'Email': '📧',
+    'Gaming': '🎮',
+    'Sports': '⚽',
+    'Docs': '📚',
+  };
+
+  // Count visits per category
+  const categoryCounts = {};
+
+  browsingHistory.forEach(item => {
+    const category = getCategoryFromUrl(item.url || item.domain, categoryMap);
+    if (category) {
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    }
+  });
+
+  // Sort by count and create tags
+  const tags = Object.entries(categoryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5) // Top 5 categories
+    .map(([category, count]) => {
+      let level = 1;
+      if (count > 3) level = 2;
+      if (count > 8) level = 3;
+      if (count > 15) level = 4;
+
+      const icon = categoryIcons[category] || '🌐';
+      return `<div class="category-tag level-${level}">${icon} ${category}</div>`;
+    });
+
+  return tags.join('');
+}
+
+function getCategoryFromUrl(url, categoryMap) {
+  if (!url) return null;
+
+  for (const [domain, category] of Object.entries(categoryMap)) {
+    if (url.includes(domain)) {
+      return category;
+    }
+  }
+
+  return null;
 }
 
 function getTimeAgo(timestamp) {
