@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Hopscotch from "@/components/Hopscotch";
 import TrendingCarousel from "@/components/TrendingCarousel";
+import NavigationSearch from "@/components/NavigationSearch";
 
 export default function Home() {
   return (
@@ -17,7 +18,7 @@ export default function Home() {
         />
       </nav>
 
-      <div className="flex flex-col items-center pt-1 pb-1" style={{ paddingRight: 'var(--hopscotch-width)' }}>
+      <div className="flex flex-col items-center pt-1 pb-24" style={{ paddingRight: 'var(--hopscotch-width)' }}>
         {/* Header Image */}
         <div className="w-80 h-52 relative">
           <Image
@@ -31,10 +32,13 @@ export default function Home() {
 
         {/* Trending Topics Carousel */}
         <TrendingCarousel />
+
+        {/* Navigation Search */}
+        <NavigationSearch />
       </div>
 
       {/* Fixed Right Sidebar Overlay with Hopscotch */}
-      <aside className="fixed top-24 right-0 h-[calc(100vh-6rem)] bg-gradient-to-b from-blue-50 to-purple-50 border-l border-gray-200 overflow-y-auto shadow-2xl" style={{ width: 'var(--hopscotch-width)' }}>
+      <aside className="fixed top-24 right-0 bottom-0 bg-gradient-to-b from-blue-50 to-purple-50 border-l border-gray-200 overflow-y-auto shadow-2xl" style={{ width: 'var(--hopscotch-width)' }}>
         <Hopscotch />
       </aside>
     </main>
