@@ -9,7 +9,10 @@
     "watch": "tsc --watch",
     "start": "npm run build && electron .",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest",
+    "ui:dev": "cd src/ui && npm run dev",
+    "ui:build": "cd src/ui && npm run build",
+    "ui:start": "cd src/ui && npm start"
   },
   "keywords": [
     "electron",
