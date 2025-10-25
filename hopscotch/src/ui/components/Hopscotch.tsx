@@ -44,9 +44,9 @@ export default function Hopscotch({ searchHistory = [], onSearchClick }: Hopscot
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-start pt-6 px-2 gap-3">
+    <div className="h-full flex flex-col items-center justify-start pt-6 pb-6 px-2 gap-3">
       {rows.length === 0 ? (
-        <button className="relative w-12 h-12 cursor-pointer transition-transform hover:scale-110 hover:brightness-110">
+        <button className="relative w-12 h-12 min-w-12 min-h-12 flex-shrink-0 cursor-pointer hover:brightness-110 transition-opacity">
           <Image
             src="/hopscotch_boxes/hopscotch_1.png"
             alt="Hopscotch box 1"
@@ -60,7 +60,7 @@ export default function Hopscotch({ searchHistory = [], onSearchClick }: Hopscot
             <button
               key={row.key}
               onClick={() => onSearchClick?.(row.items[0].id)}
-              className="relative w-12 h-12 cursor-pointer transition-transform hover:scale-110 hover:brightness-110"
+              className="relative w-12 h-12 min-w-12 min-h-12 flex-shrink-0 cursor-pointer hover:brightness-110 transition-opacity"
               title={row.items[0].query}
             >
               <Image
@@ -71,7 +71,7 @@ export default function Hopscotch({ searchHistory = [], onSearchClick }: Hopscot
               />
             </button>
           ) : (
-            <div key={row.key} className="flex flex-col gap-2">
+            <div key={row.key} className="flex flex-col gap-2 flex-shrink-0">
               {(() => {
                 const chunks: typeof row.items[] = [];
                 for (let i = 0; i < row.items.length; i += 3) {
@@ -79,12 +79,12 @@ export default function Hopscotch({ searchHistory = [], onSearchClick }: Hopscot
                 }
                 const stepsBeforeRow = rows.slice(0, rowIdx).reduce((acc, r) => acc + r.items.length, 0);
                 return chunks.map((chunk, ci) => (
-                  <div key={`${row.key}-chunk-${ci}`} className="flex w-full justify-center gap-2">
+                  <div key={`${row.key}-chunk-${ci}`} className="flex justify-center gap-2 flex-shrink-0">
                     {chunk.map((item, itemIdx) => (
                       <button
                         key={item.id}
                         onClick={() => onSearchClick?.(item.id)}
-                        className="relative w-12 h-12 cursor-pointer transition-transform hover:scale-110 hover:brightness-110"
+                        className="relative w-12 h-12 min-w-12 min-h-12 flex-shrink-0 cursor-pointer hover:brightness-110 transition-opacity"
                         title={item.query}
                       >
                         <Image

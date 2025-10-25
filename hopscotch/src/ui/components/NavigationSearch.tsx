@@ -24,6 +24,7 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
   const [lastSearchValue, setLastSearchValue] = useState('');
   const [searchHistory, setSearchHistory] = useState<SearchResult[]>([]);
   const searchRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const searchBarRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll to a search when scrollToSearchId changes
   useEffect(() => {
@@ -31,6 +32,23 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
       searchRefs.current[scrollToSearchId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [scrollToSearchId]);
+
+  // Dynamically measure and set search bar height as CSS variable
+  useEffect(() => {
+    const updateSearchBarHeight = () => {
+      if (searchBarRef.current) {
+        const height = searchBarRef.current.offsetHeight;
+        document.documentElement.style.setProperty('--search-bar-height', `${height}px`);
+      }
+    };
+
+    updateSearchBarHeight();
+    window.addEventListener('resize', updateSearchBarHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateSearchBarHeight);
+    };
+  }, []);
 
   const handleSearch = (overrideQuery?: string, groupKey?: string) => {
     const queryToRun = (overrideQuery ?? searchValue).trim();
@@ -164,7 +182,7 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
       </div>
 
       {/* Fixed bottom search bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10" style={{ paddingRight: 'var(--hopscotch-width)' }}>
+      <div ref={searchBarRef} className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10" style={{ paddingRight: 'var(--hopscotch-width)' }}>
         <div className="flex items-center gap-2 px-4 py-3">
           <div className="flex-1">
             <SearchInput

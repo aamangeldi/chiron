@@ -57,7 +57,7 @@ export default function Home() {
       </div>
 
       {/* Fixed Right Sidebar Overlay with Hopscotch */}
-      <aside className="fixed top-24 right-0 bottom-0 bg-gradient-to-b from-blue-50 to-purple-50 border-l border-gray-200 overflow-y-auto shadow-2xl" style={{ width: 'var(--hopscotch-width)' }}>
+      <aside className="fixed top-24 right-0 bg-gradient-to-b from-blue-50 to-purple-50 border-l border-gray-200 overflow-y-auto shadow-2xl" style={{ width: 'var(--hopscotch-width)', bottom: 'var(--search-bar-height, 0px)' }}>
         <Hopscotch
           searchHistory={searchHistory}
           onSearchClick={handleSearchClick}
