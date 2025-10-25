@@ -18,6 +18,7 @@
 
 import { IAIAgent } from '../shared/interfaces';
 import { AgentMessage, AgentResponse } from '../shared/types';
+import { formatHistorySummary, formatHistoryByDomain } from '../shared/formatters';
 import { randomUUID } from 'crypto';
 
 export class StubAIAgent implements IAIAgent {
@@ -41,20 +42,47 @@ export class StubAIAgent implements IAIAgent {
       throw new Error('Agent not initialized');
     }
 
-    console.log('[AIAgent] Received message:', message);
+    console.log('[AIAgent] Received message:', message.content);
     console.log('[AIAgent] Context entries:', message.context?.length || 0);
 
     // TODO: Implement actual AI interaction
-    // - Process message content
-    // - Use browsing history context
-    // - Generate intelligent response
-    // - Return structured response
+    // Example of how to use the browsing history context:
+
+    let responseContent = 'This is a stub response. Implement your AI agent to replace this.\n\n';
+
+    // If history context is provided, format it for the prompt
+    if (message.context && message.context.length > 0) {
+      console.log('[AIAgent] Formatting history context...');
+
+      // Example: Format as summary (for shorter prompts)
+      const historySummary = formatHistorySummary(message.context);
+
+      // Example: Format by domain (for domain-based analysis)
+      const historyByDomain = formatHistoryByDomain(message.context);
+
+      // In a real implementation, you would insert this into your AI prompt:
+      // const prompt = `
+      //   User question: ${message.content}
+      //
+      //   Recent browsing history:
+      //   ${historySummary}
+      //
+      //   Please answer the user's question based on their browsing history.
+      // `;
+
+      responseContent += 'I received your browsing history context:\n\n';
+      responseContent += `- ${message.context.length} history entries\n`;
+      responseContent += `- Most recent: ${message.context[0]?.title || 'N/A'}\n\n`;
+      responseContent += 'Here\'s how the history is formatted for AI consumption:\n\n';
+      responseContent += historySummary.substring(0, 500) + '...\n\n';
+      responseContent += '(In a real implementation, this would be sent to your AI model)';
+    }
 
     // Stub response
     return {
       id: randomUUID(),
       messageId: message.id,
-      content: 'This is a stub response. Implement your AI agent to replace this.',
+      content: responseContent,
       timestamp: new Date(),
       metadata: {
         model: 'stub',

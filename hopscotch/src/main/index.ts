@@ -4,7 +4,7 @@
  */
 
 import { app } from 'electron';
-import { HistoryCollectorManager, ChromeCollector } from '../history-collector';
+import { HistoryCollectorManager, ArcCollector, ChromeCollector } from '../history-collector';
 import { SQLiteStorage } from '../storage';
 import { StubAIAgent } from '../ai-agent';
 import { StubUIController } from '../ui';
@@ -17,7 +17,7 @@ class HopscotchApp {
   private uiController: StubUIController;
 
   private config: AppConfig = {
-    enabledBrowsers: [BrowserType.CHROME],
+    enabledBrowsers: [BrowserType.ARC],
     syncInterval: 30, // 30 minutes
   };
 
@@ -35,9 +35,12 @@ class HopscotchApp {
     await this.storage.initialize();
 
     // Register browser collectors
-    // TODO: Add more collectors (Firefox, Safari, Edge)
-    const chromeCollector = new ChromeCollector();
-    this.collectorManager.registerCollector(chromeCollector);
+    const arcCollector = new ArcCollector();
+    this.collectorManager.registerCollector(arcCollector);
+
+    // TODO: Add more collectors as needed
+    // const chromeCollector = new ChromeCollector();
+    // this.collectorManager.registerCollector(chromeCollector);
 
     // Initialize AI agent
     await this.aiAgent.initialize();

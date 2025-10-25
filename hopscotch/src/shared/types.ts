@@ -19,6 +19,7 @@ export interface HistoryEntry {
  * Supported browser types
  */
 export enum BrowserType {
+  ARC = 'arc',
   CHROME = 'chrome',
   FIREFOX = 'firefox',
   SAFARI = 'safari',
