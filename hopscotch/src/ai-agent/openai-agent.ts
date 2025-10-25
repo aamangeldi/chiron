@@ -7,25 +7,37 @@ import { AgentMessage, AgentResponse } from '../shared/types';
 import { formatHistorySummary } from '../shared/formatters';
 import { randomUUID } from 'crypto';
 import OpenAI from 'openai';
+const { tavily } = require('@tavily/core');
 
 export class OpenAIAgent implements IAIAgent {
   private ready: boolean = false;
   private client: OpenAI | null = null;
-  private model: string = 'gpt-5-mini'; // Latest mini model
+  private tavilyClient: any | null = null;
+  private model: string = 'gpt-5-mini'; // GPT-5 model that supports function calling
 
   async initialize(): Promise<void> {
     console.log('[OpenAIAgent] Initializing...');
 
-    // Get API key from environment
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
+    // Get API keys from environment
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
       throw new Error(
         'OPENAI_API_KEY environment variable not set. Please set it before starting the app.'
       );
     }
 
+    const tavilyApiKey = process.env.TAVILY_API_KEY;
+    if (!tavilyApiKey) {
+      throw new Error(
+        'TAVILY_API_KEY environment variable not set. Please set it before starting the app.'
+      );
+    }
+
     // Initialize OpenAI client
-    this.client = new OpenAI({ apiKey });
+    this.client = new OpenAI({ apiKey: openaiApiKey });
+
+    // Initialize Tavily client
+    this.tavilyClient = new tavily({ apiKey: tavilyApiKey });
 
     this.ready = true;
     console.log('[OpenAIAgent] Initialized with model:', this.model);
@@ -37,51 +49,204 @@ export class OpenAIAgent implements IAIAgent {
     }
 
     console.log('[OpenAIAgent] Processing message:', message.content);
-    console.log('[OpenAIAgent] Context entries:', message.context?.length || 0);
 
     try {
-      // Format browsing history context
-      let systemPrompt = `You are a helpful AI assistant with access to the user's browsing history.
+      const systemPrompt = `You are a helpful AI assistant with access to the user's browsing history and web search capabilities.
 You can help them recall websites they've visited, understand their research patterns, and answer questions about their browsing activity.
+When needed, you can search the web for current information to provide comprehensive answers.
 
-Be conversational and helpful. If the user asks about their browsing history, use the context provided to give accurate answers.`;
+IMPORTANT: Always use the appropriate tool when users ask questions:
+- Use search_browsing_history when they ask about pages they visited, sites they looked at, or their browsing activity
+- Use web_search when they ask about current information like weather, news, stock prices, or any real-time data
 
-      // Prepare messages for OpenAI
+Be conversational and helpful. Don't just offer to search - actually perform the search using the available tools.`;
+
+      // Define tools for browsing history search and web search
+      const tools: OpenAI.Chat.ChatCompletionTool[] = [
+        {
+          type: 'function',
+          function: {
+            name: 'search_browsing_history',
+            description: 'Search the user\'s browsing history for websites they\'ve visited. Use this when the user asks about pages they visited, sites they looked at, or their browsing activity.',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'Search query to find in browsing history (searches URLs and page titles)',
+                },
+                hours: {
+                  type: 'number',
+                  description: 'How many hours back to search (default: 24)',
+                  default: 24,
+                },
+                limit: {
+                  type: 'number',
+                  description: 'Maximum number of results to return (default: 50)',
+                  default: 50,
+                },
+              },
+              required: ['query'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'web_search',
+            description: 'Search the web for current information. Use this when the user asks about current events, weather, news, or any information that requires up-to-date data from the internet.',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'Search query to look up on the web',
+                },
+                max_results: {
+                  type: 'number',
+                  description: 'Maximum number of search results to return (default: 5)',
+                  default: 5,
+                },
+              },
+              required: ['query'],
+            },
+          },
+        },
+      ];
+
+      // Prepare initial messages
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
           content: systemPrompt,
         },
+        {
+          role: 'user',
+          content: message.content,
+        },
       ];
 
-      // Add browsing history context if available
-      if (message.context && message.context.length > 0) {
-        const historyContext = formatHistorySummary(message.context);
-        messages.push({
-          role: 'system',
-          content: `Recent browsing history:\n\n${historyContext}`,
-        });
-      }
-
-      // Add user message
-      messages.push({
-        role: 'user',
-        content: message.content,
-      });
-
-      // Call OpenAI API
-      const completion = await this.client.chat.completions.create({
+      // Call OpenAI API with tools
+      let completion = await this.client.chat.completions.create({
         model: this.model,
         messages: messages,
-        // GPT-5 mini only supports default temperature (1.0)
-        max_completion_tokens: 5000, // Increased for reasoning + response
+        tools: tools,
+        max_completion_tokens: 5000,
       });
 
-      const responseText = completion.choices[0]?.message?.content || 'No response generated.';
+      console.log('[OpenAIAgent] Initial completion:', JSON.stringify(completion, null, 2));
 
-      console.log('[OpenAIAgent] Response generated');
+      // Handle tool calls (if any)
+      let responseMessage = completion.choices[0]?.message;
+
+      while (responseMessage?.tool_calls && responseMessage.tool_calls.length > 0) {
+        console.log('[OpenAIAgent] Agent requested tool calls:', responseMessage.tool_calls.length);
+
+        // Add assistant's message with tool calls
+        messages.push(responseMessage);
+
+        // Execute each tool call
+        for (const toolCall of responseMessage.tool_calls) {
+          if (toolCall.function.name === 'search_browsing_history') {
+            const args = JSON.parse(toolCall.function.arguments);
+            console.log('[OpenAIAgent] Searching browsing history:', args);
+
+            // Get browsing history from context
+            const hours = args.hours || 24;
+            const limit = args.limit || 50;
+
+            // Filter context entries based on query
+            const filteredEntries = message.context?.filter(entry => {
+              const searchStr = `${entry.url} ${entry.title || ''}`.toLowerCase();
+              return searchStr.includes(args.query.toLowerCase());
+            }).slice(0, limit) || [];
+
+            const historyResults = formatHistorySummary(filteredEntries);
+            const toolResult = filteredEntries.length > 0
+              ? historyResults
+              : `No browsing history found matching "${args.query}" in the last ${hours} hours.`;
+
+            console.log('[OpenAIAgent] Tool result:', toolResult.substring(0, 200) + '...');
+
+            // Add tool result to messages
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: toolResult,
+            });
+          } else if (toolCall.function.name === 'web_search') {
+            const args = JSON.parse(toolCall.function.arguments);
+            console.log('[OpenAIAgent] Performing web search with Tavily:', args);
+
+            try {
+              if (!this.tavilyClient) {
+                throw new Error('Tavily client not initialized');
+              }
+
+              const searchQuery = args.query;
+              const maxResults = args.max_results || 5;
+
+              // Perform search using Tavily
+              const searchResponse = await this.tavilyClient.search(searchQuery, {
+                max_results: maxResults,
+                include_answer: true,
+                include_raw_content: false,
+                search_depth: "basic"
+              });
+
+              // Format the search results
+              let searchResult = '';
+              
+              if (searchResponse.answer) {
+                searchResult += `Answer: ${searchResponse.answer}\n\n`;
+              }
+
+              if (searchResponse.results && searchResponse.results.length > 0) {
+                searchResult += 'Search Results:\n';
+                searchResponse.results.forEach((result: any, index: number) => {
+                  searchResult += `${index + 1}. ${result.title}\n`;
+                  searchResult += `   URL: ${result.url}\n`;
+                  searchResult += `   Content: ${result.content}\n\n`;
+                });
+              } else {
+                searchResult = `No search results found for "${searchQuery}".`;
+              }
+
+              console.log('[OpenAIAgent] Web search result:', searchResult.substring(0, 200) + '...');
+
+              // Add tool result to messages
+              messages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: searchResult,
+              });
+            } catch (error) {
+              console.error('[OpenAIAgent] Web search error:', error);
+              messages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Error performing web search: ${error}`,
+              });
+            }
+          }
+        }
+
+        // Call API again with tool results
+        completion = await this.client.chat.completions.create({
+          model: this.model,
+          messages: messages,
+          tools: tools,
+          max_completion_tokens: 5000,
+        });
+
+        responseMessage = completion.choices[0]?.message;
+        console.log('[OpenAIAgent] Follow-up completion:', JSON.stringify(completion, null, 2));
+      }
+
+      const responseText = responseMessage?.content || 'No response generated.';
+
+      console.log('[OpenAIAgent] Final response generated');
       console.log('[OpenAIAgent] Response text:', responseText);
-      console.log('[OpenAIAgent] Full completion:', JSON.stringify(completion, null, 2));
 
       return {
         id: randomUUID(),
@@ -108,5 +273,6 @@ Be conversational and helpful. If the user asks about their browsing history, us
     console.log('[OpenAIAgent] Shutting down...');
     this.ready = false;
     this.client = null;
+    this.tavilyClient = null;
   }
 }
