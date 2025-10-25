@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Hopscotch from "@/components/Hopscotch";
 
 const trendingTopics = [
   { name: "Wet Look Lashes", image: "/trending/Wet Look Lashes.png" },
@@ -23,7 +24,7 @@ export default function Home() {
         />
       </nav>
 
-      <div className="flex flex-col items-center pt-8">
+      <div className="flex flex-col items-center pt-2 pb-2" style={{ paddingRight: 'var(--hopscotch-width)' }}>
         {/* Header Image */}
         <div className="w-80 h-52 relative">
           <Image
@@ -69,6 +70,11 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Fixed Right Sidebar Overlay with Hopscotch */}
+      <aside className="fixed top-24 right-0 h-[calc(100vh-6rem)] bg-gradient-to-b from-blue-50 to-purple-50 border-l border-gray-200 overflow-y-auto shadow-2xl" style={{ width: 'var(--hopscotch-width)' }}>
+        <Hopscotch />
+      </aside>
     </main>
   );
 }
