@@ -5,3 +5,9 @@ dist/
 .env
 *.db
 *.sqlite
+
+# Next.js UI build artifacts
+src/ui/.next/
+src/ui/node_modules/
+src/ui/.turbo/
+src/ui/out/
