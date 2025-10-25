@@ -21,20 +21,32 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
     print("🚀 Starting Hopscotch Backend...")
-    
+
     # Initialize services
     app.state.storage = HistoryStorage()
     app.state.collector_manager = HistoryCollectorManager()
     app.state.ai_agent = AIAgent()
-    
+
     await app.state.storage.initialize()
     await app.state.collector_manager.initialize()
     await app.state.ai_agent.initialize()
-    
+
     print("✅ Backend services initialized")
-    
+
+    # Sync browser history on startup
+    print("[Startup] Syncing browser history...")
+    try:
+        entries = await app.state.collector_manager.collect_from_all()
+        if entries:
+            await app.state.storage.save_entries(entries)
+            print(f"[Startup] ✅ Synced {len(entries)} history entries")
+        else:
+            print("[Startup] ℹ️ No history entries found")
+    except Exception as e:
+        print(f"[Startup] ⚠️ Error syncing history: {e}")
+
     yield
-    
+
     # Shutdown
     print("🛑 Shutting down Hopscotch Backend...")
     await app.state.ai_agent.shutdown()
