@@ -66,60 +66,71 @@ class HistoryStorage:
         """Store history entries with efficient bulk operations"""
         if not entries:
             return
-        
-        session = self.get_session()
-        
-        try:
-            # Convert to database records
-            records = []
-            for entry in entries:
-                record = HistoryRecord(
-                    id=entry.id,
-                    url=entry.url,
-                    title=entry.title,
-                    visit_time=entry.visit_time,
-                    browser=entry.browser.value,
-                    visit_count=entry.visit_count,
-                    metadata_json=json.dumps(entry.metadata) if entry.metadata else None
+
+        # Batch size to avoid SQLite parameter limits (999 variables per statement)
+        # Each record has 7 fields, so 100 records = 700 parameters (safe limit)
+        BATCH_SIZE = 100
+
+        total_saved = 0
+
+        for i in range(0, len(entries), BATCH_SIZE):
+            batch = entries[i:i + BATCH_SIZE]
+            session = self.get_session()
+
+            try:
+                # Convert to database records
+                records = []
+                for entry in batch:
+                    record = HistoryRecord(
+                        id=entry.id,
+                        url=entry.url,
+                        title=entry.title,
+                        visit_time=entry.visit_time,
+                        browser=entry.browser.value,
+                        visit_count=entry.visit_count,
+                        metadata_json=json.dumps(entry.metadata) if entry.metadata else None
+                    )
+                    records.append(record)
+
+                # Use bulk upsert for efficiency
+                stmt = insert(HistoryRecord).values([
+                    {
+                        'id': r.id,
+                        'url': r.url,
+                        'title': r.title,
+                        'visit_time': r.visit_time,
+                        'browser': r.browser,
+                        'visit_count': r.visit_count,
+                        'metadata_json': r.metadata_json
+                    } for r in records
+                ])
+
+                # Handle conflicts by updating
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=['id'],
+                    set_=dict(
+                        url=stmt.excluded.url,
+                        title=stmt.excluded.title,
+                        visit_time=stmt.excluded.visit_time,
+                        browser=stmt.excluded.browser,
+                        visit_count=stmt.excluded.visit_count,
+                        metadata_json=stmt.excluded.metadata_json
+                    )
                 )
-                records.append(record)
-            
-            # Use bulk upsert for efficiency
-            stmt = insert(HistoryRecord).values([
-                {
-                    'id': r.id,
-                    'url': r.url,
-                    'title': r.title,
-                    'visit_time': r.visit_time,
-                    'browser': r.browser,
-                    'visit_count': r.visit_count,
-                    'metadata_json': r.metadata_json
-                } for r in records
-            ])
-            
-            # Handle conflicts by updating
-            stmt = stmt.on_conflict_do_update(
-                index_elements=['id'],
-                set_=dict(
-                    url=stmt.excluded.url,
-                    title=stmt.excluded.title,
-                    visit_time=stmt.excluded.visit_time,
-                    browser=stmt.excluded.browser,
-                    visit_count=stmt.excluded.visit_count,
-                    metadata_json=stmt.excluded.metadata_json
-                )
-            )
-            
-            session.execute(stmt)
-            session.commit()
-            print(f"[Storage] Saved {len(entries)} entries")
-            
-        except Exception as e:
-            session.rollback()
-            print(f"[Storage] Error saving entries: {e}")
-            raise
-        finally:
-            session.close()
+
+                session.execute(stmt)
+                session.commit()
+                total_saved += len(batch)
+                print(f"[Storage] Saved batch {i//BATCH_SIZE + 1}: {len(batch)} entries (total: {total_saved}/{len(entries)})")
+
+            except Exception as e:
+                session.rollback()
+                print(f"[Storage] Error saving batch: {e}")
+                raise
+            finally:
+                session.close()
+
+        print(f"[Storage] Successfully saved all {total_saved} entries")
     
     async def query(self, params: HistoryQuery) -> HistoryQueryResult:
         """Query history entries with pandas for efficient processing"""

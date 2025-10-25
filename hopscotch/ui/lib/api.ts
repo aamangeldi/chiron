@@ -9,7 +9,7 @@ export interface HistoryEntry {
   url: string;
   title?: string;
   visit_time: string;
-  browser: 'chrome' | 'firefox' | 'safari' | 'edge';
+  browser: 'chrome' | 'firefox' | 'safari' | 'edge' | 'arc';
   visit_count: number;
   metadata?: Record<string, any>;
 }
@@ -147,6 +147,20 @@ class ApiClient {
 
   async getAIStatus(): Promise<Record<string, any>> {
     return this.request<Record<string, any>>('/api/ai/status');
+  }
+
+  async getTrendingCategories(days: number = 7, limit: number = 5): Promise<{
+    categories: Array<{ name: string; description: string }>;
+    period_days: number;
+    source: string;
+    message?: string;
+  }> {
+    const params = new URLSearchParams({
+      days: days.toString(),
+      limit: limit.toString(),
+    });
+
+    return this.request(`/api/ai/trending?${params}`);
   }
 
   // Sync API

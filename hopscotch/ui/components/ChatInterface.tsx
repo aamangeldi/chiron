@@ -1,14 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { Message } from "@/lib/types";
-import { initialMessages, sendMessageToAI } from "@/lib/mockData";
+import { apiClient } from "@/lib/api";
+
+const initialMessages: Message[] = [
+  {
+    id: "1",
+    role: "assistant",
+    content: "Hello! I'm your Hopscotch AI assistant. I can help you explore and understand your browsing history. What would you like to know?",
+    timestamp: new Date(Date.now() - 60000),
+  },
+];
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
+  const [recentHistory, setRecentHistory] = useState<any[]>([]);
+
+  // Fetch recent history for context
+  useEffect(() => {
+    async function fetchRecentHistory() {
+      try {
+        const history = await apiClient.getRecentHistory(24, 50);
+        setRecentHistory(history);
+      } catch (error) {
+        console.error("Error fetching recent history:", error);
+      }
+    }
+
+    fetchRecentHistory();
+  }, []);
 
   const handleSendMessage = async (content: string) => {
     // Add user message
@@ -23,14 +47,24 @@ export default function ChatInterface() {
     setIsLoading(true);
 
     try {
-      // Get AI response (mock for now)
-      const aiResponse = await sendMessageToAI(content);
+      // Prepare context with recent browsing history
+      const context = {
+        recent_history: recentHistory.slice(0, 50).map((entry) => ({
+          url: entry.url,
+          title: entry.title || "",
+          visit_time: entry.visit_time,
+          domain: entry.metadata?.domain || "",
+        })),
+      };
+
+      // Send message to AI agent with context
+      const response = await apiClient.chatWithContext(content, context);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: aiResponse,
-        timestamp: new Date(),
+        content: response.content,
+        timestamp: new Date(response.timestamp),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -39,7 +73,7 @@ export default function ChatInterface() {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Sorry, I encountered an error. Please try again.",
+        content: "Sorry, I encountered an error. Please make sure the backend is running and the AI agent is configured properly.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
