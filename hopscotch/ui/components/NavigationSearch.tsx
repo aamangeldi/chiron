@@ -5,11 +5,13 @@ import SearchInput from './SearchInput';
 import ContentGrid, { ContentItem } from './ContentGrid';
 import ContentControls from './ContentControls';
 import { ControlButton, HARDCODED_IMAGES } from '@/constants/navigationSearch';
+import { apiClient } from '@/lib/api';
 
 export interface SearchResult {
   id: string;
   query: string;
   items: ContentItem[];
+  response?: string;
   timestamp: number;
 }
 
@@ -22,7 +24,23 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
   const [searchValue, setSearchValue] = useState('');
   const [lastSearchValue, setLastSearchValue] = useState('');
   const [searchHistory, setSearchHistory] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [recentHistory, setRecentHistory] = useState<any[]>([]);
   const searchRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Fetch recent history for context
+  useEffect(() => {
+    async function fetchRecentHistory() {
+      try {
+        const history = await apiClient.getRecentHistory(24, 50);
+        setRecentHistory(history);
+      } catch (error) {
+        console.error("Error fetching recent history:", error);
+      }
+    }
+
+    fetchRecentHistory();
+  }, []);
 
   // Auto-scroll to a search when scrollToSearchId changes
   useEffect(() => {
@@ -31,31 +49,69 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
     }
   }, [scrollToSearchId]);
 
-  const handleSearch = () => {
-    if (searchValue.trim()) {
+  const handleSearch = async () => {
+    if (searchValue.trim() && !isSearching) {
       setLastSearchValue(searchValue);
+      setIsSearching(true);
 
-      const newSearch: SearchResult = {
-        id: `search-${Date.now()}`,
-        query: searchValue,
-        items: HARDCODED_IMAGES.map((imageUrl, index) => ({
-          id: index,
-          imageUrl,
-          title: `Option ${index + 1}`,
-        })),
-        timestamp: Date.now(),
-      };
+      try {
+        // Prepare context with recent browsing history
+        const context = {
+          recent_history: recentHistory.slice(0, 50).map((entry) => ({
+            url: entry.url,
+            title: entry.title || "",
+            visit_time: entry.visit_time,
+            domain: entry.metadata?.domain || "",
+          })),
+        };
 
-      const updatedHistory = [...searchHistory, newSearch];
-      setSearchHistory(updatedHistory);
+        // Query AI agent
+        const aiResponse = await apiClient.chatWithContext(searchValue, context);
 
-      // Notify parent about search history change
-      onSearchHistoryChange?.(updatedHistory);
+        const newSearch: SearchResult = {
+          id: `search-${Date.now()}`,
+          query: searchValue,
+          response: aiResponse.content,
+          items: HARDCODED_IMAGES.map((imageUrl, index) => ({
+            id: index,
+            imageUrl,
+            title: `Option ${index + 1}`,
+          })),
+          timestamp: Date.now(),
+        };
 
-      // Auto-scroll to the new search after a brief delay to let it render
-      setTimeout(() => {
-        searchRefs.current[newSearch.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+        const updatedHistory = [...searchHistory, newSearch];
+        setSearchHistory(updatedHistory);
+
+        // Notify parent about search history change
+        onSearchHistoryChange?.(updatedHistory);
+
+        // Auto-scroll to the new search after a brief delay to let it render
+        setTimeout(() => {
+          searchRefs.current[newSearch.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      } catch (error) {
+        console.error("Error querying AI:", error);
+
+        // Fallback to hardcoded response on error
+        const newSearch: SearchResult = {
+          id: `search-${Date.now()}`,
+          query: searchValue,
+          response: "Sorry, I couldn't connect to the AI agent. Please make sure the backend is running.",
+          items: HARDCODED_IMAGES.map((imageUrl, index) => ({
+            id: index,
+            imageUrl,
+            title: `Option ${index + 1}`,
+          })),
+          timestamp: Date.now(),
+        };
+
+        const updatedHistory = [...searchHistory, newSearch];
+        setSearchHistory(updatedHistory);
+        onSearchHistoryChange?.(updatedHistory);
+      } finally {
+        setIsSearching(false);
+      }
     }
   };
 
@@ -90,6 +146,15 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
                 <span className="font-medium">Search:</span> {search.query}
               </p>
             </div>
+
+            {/* Display AI response */}
+            {search.response && (
+              <div className="w-full max-w-2xl mx-auto px-6 py-4 mb-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{search.response}</p>
+                </div>
+              </div>
+            )}
 
             <ContentGrid
               items={search.items}

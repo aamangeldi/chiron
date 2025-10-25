@@ -49,23 +49,25 @@ async def get_ai_status(
 
 @router.post("/chat/with-context", response_model=AgentResponse)
 async def chat_with_history_context(
-    message: str,
-    context: Optional[Dict[str, Any]] = None,
+    request: Dict[str, Any],
     ai_agent: AIAgent = Depends(get_ai_agent)
 ):
     """Send a message with browsing history context"""
     try:
         if not ai_agent.is_ready():
             raise HTTPException(status_code=503, detail="AI agent not ready")
-        
+
+        message = request.get("message", "")
+        context = request.get("context", {})
+
         agent_message = AgentMessage(
             content=message,
-            context=context or {}
+            context=context
         )
-        
+
         response = await ai_agent.send_message(agent_message)
         return response
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
 

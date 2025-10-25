@@ -4,9 +4,10 @@ Enhanced AI agent with OpenAI integration and browsing history context
 """
 
 import json
+import asyncio
 from typing import List, Dict, Optional, Any
 from datetime import datetime
-from openai import AsyncOpenAI
+from openai import OpenAI
 import pandas as pd
 
 from app.models.ai import AgentMessage, AgentResponse
@@ -18,7 +19,7 @@ class AIAgent:
     """Enhanced AI agent with browsing history context and analytics"""
 
     def __init__(self):
-        self.client: Optional[AsyncOpenAI] = None
+        self.client: Optional[OpenAI] = None
         self.ready = False
         self.model = settings.AI_MODEL
         self.max_context_entries = 50  # Limit context size
@@ -26,6 +27,7 @@ class AIAgent:
     async def initialize(self):
         """Initialize the AI agent"""
         print("[AIAgent] Initializing AI agent...")
+        print(f"[AIAgent] API key present: {bool(settings.OPENAI_API_KEY)}")
 
         if not settings.OPENAI_API_KEY:
             print("[AIAgent] Warning: No OpenAI API key provided, using stub mode")
@@ -33,16 +35,19 @@ class AIAgent:
             return
 
         try:
-            self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-            
-            # Test the connection
-            await self._test_connection()
-            
+            # Initialize OpenAI client (using sync client, will wrap calls with asyncio.to_thread)
+            print("[AIAgent] Creating OpenAI client...")
+            self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            print("[AIAgent] OpenAI client created successfully")
             self.ready = True
             print(f"[AIAgent] AI agent ready with model: {self.model}")
-            
+
         except Exception as e:
-            print(f"[AIAgent] Error initializing: {e}")
+            print(f"[AIAgent] Error initializing OpenAI client: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            print(f"[AIAgent] Falling back to stub mode")
+            self.client = None
             self.ready = True  # Fall back to stub mode
     
     async def send_message(self, message: AgentMessage) -> AgentResponse:
@@ -70,26 +75,27 @@ class AIAgent:
         """Process message using OpenAI API"""
         # Prepare context from browsing history
         context = await self._prepare_context(message.context)
-        
+
         # Build system prompt
         system_prompt = self._build_system_prompt(context)
-        
+
         # Prepare messages for OpenAI
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": message.content}
         ]
-        
-        # Call OpenAI API
-        response = await self.client.chat.completions.create(
+
+        # Call OpenAI API using asyncio.to_thread to run sync call in thread pool
+        response = await asyncio.to_thread(
+            self.client.chat.completions.create,
             model=self.model,
             messages=messages,
             max_tokens=1000,
             temperature=0.7
         )
-        
+
         content = response.choices[0].message.content
-        
+
         return AgentResponse(
             content=content,
             confidence=0.9,  # OpenAI doesn't provide confidence scores
