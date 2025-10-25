@@ -10,15 +10,16 @@ export interface ContentItem {
 interface ContentGridProps {
   items: ContentItem[];
   onItemClick?: (index: number) => void;
+  compact?: boolean;
 }
 
-export default function ContentGrid({ items, onItemClick }: ContentGridProps) {
+export default function ContentGrid({ items, onItemClick, compact = false }: ContentGridProps) {
   const gridItems = Array.from({ length: GRID_SIZE }, (_, i) => items[i] || { id: i });
 
   return (
-    <div className="w-full max-w-md mx-auto px-6 py-2">
+    <div className={compact ? "w-full px-2 py-1" : "w-full max-w-md mx-auto px-6 py-2"}>
       <div
-        className="grid gap-1"
+        className={compact ? "grid gap-1" : "grid gap-1"}
         style={{ gridTemplateColumns: `repeat(${GRID_COLUMNS}, 1fr)` }}
       >
         {gridItems.map((item, index) => (
