@@ -1,9 +1,25 @@
+'use client';
+
+import { useState } from 'react';
 import Image from "next/image";
 import Hopscotch from "@/components/Hopscotch";
 import TrendingCarousel from "@/components/TrendingCarousel";
-import NavigationSearch from "@/components/NavigationSearch";
+import NavigationSearch, { SearchResult } from "@/components/NavigationSearch";
 
 export default function Home() {
+  const [searchHistory, setSearchHistory] = useState<SearchResult[]>([]);
+  const [scrollToSearchId, setScrollToSearchId] = useState<string | null>(null);
+
+  const handleSearchHistoryChange = (searches: SearchResult[]) => {
+    setSearchHistory(searches);
+  };
+
+  const handleSearchClick = (searchId: string) => {
+    setScrollToSearchId(searchId);
+    // Reset after scrolling
+    setTimeout(() => setScrollToSearchId(null), 500);
+  };
+
   return (
     <main className="min-h-screen bg-white">
       {/* Navbar */}
@@ -34,12 +50,18 @@ export default function Home() {
         <TrendingCarousel />
 
         {/* Navigation Search */}
-        <NavigationSearch />
+        <NavigationSearch
+          onSearchHistoryChange={handleSearchHistoryChange}
+          scrollToSearchId={scrollToSearchId}
+        />
       </div>
 
       {/* Fixed Right Sidebar Overlay with Hopscotch */}
       <aside className="fixed top-24 right-0 bottom-0 bg-gradient-to-b from-blue-50 to-purple-50 border-l border-gray-200 overflow-y-auto shadow-2xl" style={{ width: 'var(--hopscotch-width)' }}>
-        <Hopscotch />
+        <Hopscotch
+          searchHistory={searchHistory}
+          onSearchClick={handleSearchClick}
+        />
       </aside>
     </main>
   );
