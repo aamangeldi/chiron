@@ -61,8 +61,8 @@ export function formatHistorySummary(entries: HistoryEntry[]): string {
   lines.push(`Recently visited ${entries.length} pages:`);
   lines.push('');
 
-  for (const entry of entries.slice(0, 50)) {
-    // Limit to 50 most recent
+  for (const entry of entries) {
+    // Show all entries passed in
     const time = entry.visitTime.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -75,10 +75,6 @@ export function formatHistorySummary(entries: HistoryEntry[]): string {
     lines.push(`- [${date} ${time}] ${entry.title || 'Untitled'} - ${entry.url}`);
   }
 
-  if (entries.length > 50) {
-    lines.push('');
-    lines.push(`... and ${entries.length - 50} more entries`);
-  }
 
   return lines.join('\n');
 }
