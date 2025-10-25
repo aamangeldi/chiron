@@ -26,34 +26,32 @@ export default function ContentControls({ onControlClick }: ContentControlsProps
   const bottomRowButtons = CONTROL_BUTTONS.filter(btn => btn.row === 1);
 
   return (
-    <div className="w-full max-w-md mx-auto px-6 pb-2">
-      <div className="bg-gray-800 rounded-lg p-2 space-y-2">
-        {/* Top row: S1-S4 and reroll */}
-        <div className="flex gap-2 items-center justify-center">
-          {topRowButtons.map((button) => (
-            <button
-              key={button.id}
-              onClick={() => onControlClick(button)}
-              className={getButtonStyles(button.type)}
-              title={`${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`}
-            >
-              {button.label}
-            </button>
-          ))}
-        </div>
-        {/* Bottom row: L1-L4 and open tabs */}
-        <div className="flex gap-2 items-center justify-center">
-          {bottomRowButtons.map((button) => (
-            <button
-              key={button.id}
-              onClick={() => onControlClick(button)}
-              className={getButtonStyles(button.type)}
-              title={`${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`}
-            >
-              {button.label}
-            </button>
-          ))}
-        </div>
+    <div className="bg-gray-100 rounded-lg p-2 space-y-2">
+      {/* Top row: S1-S4 and reroll */}
+      <div className="flex gap-2 items-center justify-center">
+        {topRowButtons.map((button) => (
+          <button
+            key={button.id}
+            onClick={() => onControlClick(button)}
+            className={getButtonStyles(button.type)}
+            title={`${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`}
+          >
+            {button.label}
+          </button>
+        ))}
+      </div>
+      {/* Bottom row: L1-L4 and open tabs */}
+      <div className="flex gap-2 items-center justify-center">
+        {bottomRowButtons.map((button) => (
+          <button
+            key={button.id}
+            onClick={() => onControlClick(button)}
+            className={getButtonStyles(button.type)}
+            title={`${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`}
+          >
+            {button.label}
+          </button>
+        ))}
       </div>
     </div>
   );
