@@ -1,277 +1,171 @@
 # Hopscotch
 
-An AI-powered desktop application that collects your browsing history and enables novel interactions through an intelligent agent.
-
-## Project Status
-
-**Current Phase:** Scaffolding / Early Development
-
-This is the initial scaffolding with modular architecture designed for parallel development. See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) for detailed development roadmap.
+AI-powered browsing history assistant that helps you understand and interact with your web browsing patterns.
 
 ## Architecture
 
-The project is organized into independent modules:
+Hopscotch is now a modern web application with:
 
-```
-src/
-├── shared/           # Common types and interfaces
-│   ├── types.ts      # Data models (HistoryEntry, etc.)
-│   └── interfaces.ts # Module contracts (IHistoryCollector, IAIAgent, etc.)
-├── history-collector/  # Browser history extraction
-│   ├── chrome-collector.ts
-│   ├── firefox-collector.ts (TODO)
-│   ├── safari-collector.ts (TODO)
-│   ├── edge-collector.ts (TODO)
-│   └── manager.ts
-├── storage/          # Data persistence layer
-│   └── sqlite-storage.ts
-├── ai-agent/         # AI interaction (STUB - needs implementation)
-│   └── stub-agent.ts
-├── ui/               # User interface (STUB - needs implementation)
-│   └── stub-controller.ts
-└── main/             # Main process orchestration
-    └── index.ts
-```
+- **Frontend**: Next.js 13+ with React and Tailwind CSS
+- **Backend**: Python FastAPI with SQLAlchemy
+- **AI Integration**: OpenAI GPT-4 for intelligent insights
+- **Background Processing**: Celery with Redis for periodic sync
+- **Database**: SQLite (easily upgradeable to PostgreSQL)
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- TypeScript knowledge
-- Electron familiarity (helpful)
+- Python 3.9+
+- uv (recommended) or pip for Python dependency management
+  - Install uv: `pip install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- Redis (optional, for background tasks)
 
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Run the application
-npm start
-```
-
-### Development
+### Single Command Setup & Start
 
 ```bash
-# Watch mode (auto-rebuild on changes)
-npm run watch
-
-# In another terminal
-npm run dev
+# Complete setup and start development servers
+make setup && make dev
 ```
 
-## Module Overview
-
-### 1. Shared (`src/shared/`)
-
-Defines all common types and interfaces. **Start here** to understand the data models and contracts.
-
-Key files:
-- `types.ts` - Data models (HistoryEntry, BrowserType, etc.)
-- `interfaces.ts` - Module contracts (IHistoryCollector, IStorage, IAIAgent, IUIController)
-
-### 2. History Collector (`src/history-collector/`)
-
-Extracts browsing history from various browsers.
-
-**Status:** Partially implemented (Chrome stub only)
-
-**TODO:**
-- Implement Chrome history extraction (see `chrome-collector.ts:23`)
-- Add Firefox collector
-- Add Safari collector (macOS)
-- Add Edge collector
-
-**Interface:** `IHistoryCollector`
-
-Each collector must implement:
-- `getBrowserType()` - Return the browser type
-- `isAvailable()` - Check if browser is installed
-- `collectHistory(since?)` - Extract history entries
-- `getLastSyncTime()` - Get last sync timestamp
-
-### 3. Storage (`src/storage/`)
-
-Handles persistence and querying of browsing history.
-
-**Status:** Fully implemented (SQLite)
-
-**Features:**
-- SQLite database (~/.hopscotch/history.db by default)
-- Full-text search on URLs and titles
-- Date range filtering
-- Browser type filtering
-- Pagination support
-
-**Interface:** `IStorage`
-
-### 4. AI Agent (`src/ai-agent/`)
-
-AI-powered interaction with browsing history.
-
-**Status:** STUB - Needs implementation
-
-**TODO FOR TEAMMATE:**
-This is where your AI agent lives. Implement the `IAIAgent` interface with your chosen AI backend:
-
-Options:
-- OpenAI API (GPT-4, GPT-3.5)
-- Anthropic Claude API
-- Local LLM (Ollama, llama.cpp, etc.)
-- Custom model
-
-**Interface:** `IAIAgent`
-
-Must implement:
-- `initialize()` - Set up AI backend
-- `sendMessage(message)` - Process user messages with history context
-- `isReady()` - Check if agent is ready
-- `shutdown()` - Clean up resources
-
-See `src/ai-agent/stub-agent.ts` for detailed TODOs.
-
-### 5. UI (`src/ui/`)
-
-User interface layer.
-
-**Status:** STUB - Needs implementation
-
-**TODO FOR TEAMMATE:**
-Build the user interface. Choose your framework:
-
-Options:
-- React + TypeScript
-- Vue + TypeScript
-- Svelte
-- Vanilla HTML/CSS/JS
-
-**Interface:** `IUIController`
-
-Must implement:
-- `initialize()` - Set up UI windows/views
-- `show()` - Display main window
-- `hide()` - Hide main window
-- `handleData(channel, data)` - Receive updates from main process
-
-See `src/ui/stub-controller.ts` for detailed TODOs.
-
-### 6. Main (`src/main/`)
-
-Electron main process that orchestrates all modules.
-
-**Status:** Basic implementation complete
-
-**Features:**
-- Initializes all modules
-- Coordinates periodic history sync
-- Manages app lifecycle
-- Handles IPC between modules
-
-## Parallel Development Guide
-
-### For History Collection Work
-
-1. Focus on `src/history-collector/`
-2. Implement collectors for each browser
-3. Test with `src/storage/` (already working)
-4. No dependencies on AI or UI modules
-
-### For AI Agent Work
-
-1. Focus on `src/ai-agent/`
-2. Replace `StubAIAgent` with your implementation
-3. Use `src/shared/types.ts` for data models
-4. Test independently - the interface is well-defined
-5. Can develop completely in parallel
-
-### For UI Work
-
-1. Focus on `src/ui/`
-2. Replace `StubUIController` with your implementation
-3. Use `src/shared/types.ts` for data models
-4. Can mock data initially for UI development
-5. Integrate with real storage later
-
-## Data Flow
-
-```
-Browser DBs → History Collectors → Storage (SQLite) → UI Display
-                                      ↓           ↑
-                                  AI Agent ← → User Chat
-```
-
-1. **Collection**: History collectors extract data from browser databases
-2. **Storage**: Entries are stored in SQLite with full-text search
-3. **Query**: UI queries storage for display/search
-4. **AI Context**: When user chats, relevant history is sent to AI agent
-5. **Response**: AI agent responds with insights/suggestions
-
-## Testing
+### Individual Commands
 
 ```bash
-# Run tests (once implemented)
-npm test
+# Setup everything (install dependencies, create config)
+make setup
+
+# Start both frontend and backend
+make dev
+
+# Start individual services
+make frontend   # Next.js on http://localhost:3000
+make backend    # FastAPI on http://localhost:8000
+make worker     # Celery worker
+make beat       # Celery beat scheduler
+
+# Utilities
+make clean      # Clean build artifacts
+make help       # Show all available commands
 ```
 
-Currently no tests - add them as you implement features!
+### Alternative: Using npm scripts
 
-## Configuration
-
-Default configuration in `src/main/index.ts:18`:
-
-```typescript
-{
-  enabledBrowsers: [BrowserType.CHROME],
-  syncInterval: 30, // minutes
-}
+```bash
+# All npm scripts delegate to make commands
+npm run setup   # Same as: make setup
+npm run dev     # Same as: make dev
+npm run help    # Same as: make help
 ```
 
-TODO: Make this user-configurable through settings UI.
+## Project Structure
 
-## Database Schema
-
-SQLite tables (in `~/.hopscotch/history.db`):
-
-```sql
-CREATE TABLE history (
-  id TEXT PRIMARY KEY,
-  url TEXT NOT NULL,
-  title TEXT,
-  visit_time INTEGER NOT NULL,
-  browser TEXT NOT NULL,
-  visit_count INTEGER DEFAULT 1,
-  metadata TEXT,
-  created_at INTEGER DEFAULT (strftime('%s', 'now'))
-);
+```
+hopscotch/
+├── backend/                 # Python FastAPI backend
+│   ├── app/
+│   │   ├── api/            # API endpoints
+│   │   ├── core/           # Configuration
+│   │   ├── models/         # Pydantic models
+│   │   ├── services/       # Business logic
+│   │   └── main.py         # FastAPI app
+│   ├── workers/            # Celery background tasks
+│   └── requirements.txt    # Python dependencies
+├── ui/                     # Next.js frontend
+│   ├── app/               # App router pages
+│   ├── components/        # React components
+│   └── lib/               # Utilities
+└── package.json           # Root package.json
 ```
 
-## Roadmap
+## Features
 
-See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) for the full staged development plan.
+### 🔍 Browser History Collection
+- Automatic Chrome history extraction
+- Platform-specific path detection
+- Efficient data processing with pandas
 
-**Next Steps:**
-1. Decide on AI backend (OpenAI, Claude, local, etc.)
-2. Decide on UI framework (React, Vue, Svelte, etc.)
-3. Implement browser history collectors
-4. Implement AI agent in parallel
-5. Implement UI in parallel
-6. Integration and testing
+### 🤖 AI-Powered Insights
+- OpenAI GPT-4 integration
+- Browsing pattern analysis
+- Intelligent suggestions and recommendations
+
+### 📊 Analytics Dashboard
+- Browsing statistics and trends
+- Domain analysis and categorization
+- Time-based pattern recognition
+
+### 🔄 Background Sync
+- Periodic history synchronization
+- Celery-based task queue
+- Error handling and retry logic
+
+### 🌐 Modern Web Interface
+- Next.js 13+ with App Router
+- Responsive design with Tailwind CSS
+- Real-time updates and interactions
+
+## API Documentation
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## Development
+
+### Backend Development
+```bash
+cd backend
+python run.py                    # Start FastAPI server
+celery -A workers.celery_app worker --loglevel=info  # Start worker
+```
+
+### Frontend Development
+```bash
+cd ui
+npm run dev                     # Start Next.js dev server
+npm run build                   # Build for production
+```
+
+### Database Management
+```bash
+# The SQLite database is automatically created
+# For PostgreSQL, update DATABASE_URL in backend/.env
+```
+
+## Migration from Electron
+
+This project has been migrated from an Electron desktop app to a modern web application:
+
+- ✅ Removed Electron dependencies
+- ✅ Migrated TypeScript services to Python
+- ✅ Enhanced with FastAPI and modern Python libraries
+- ✅ Added Celery for background processing
+- ✅ Improved AI integration with OpenAI
+- ✅ Better data processing with pandas
+
+## Deployment
+
+### Backend (FastAPI)
+- Deploy to any Python hosting (Railway, Render, Heroku)
+- Set environment variables
+- Run Celery workers separately
+
+### Frontend (Next.js)
+- Deploy to Vercel, Netlify, or any static hosting
+- Update API endpoints in production
+
+### Database
+- SQLite for development
+- PostgreSQL for production
 
 ## Contributing
 
-This is an internal project for now. Coordinate with your teammate on:
-- AI agent implementation approach
-- UI framework choice
-- Feature priorities
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## License
 
-MIT
-
-## Questions?
-
-Check the implementation plan or ask your teammate!
+MIT License - see LICENSE file for details.
