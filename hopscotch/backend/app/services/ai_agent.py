@@ -10,6 +10,11 @@ from datetime import datetime
 from openai import OpenAI
 import pandas as pd
 
+try:
+    from tavily import TavilyClient
+except ImportError:
+    TavilyClient = None
+
 from app.models.ai import AgentMessage, AgentResponse
 from app.models.history import HistoryEntry
 from app.core.config import settings
@@ -20,6 +25,7 @@ class AIAgent:
 
     def __init__(self):
         self.client: Optional[OpenAI] = None
+        self.tavily_client: Optional[Any] = None
         self.ready = False
         self.model = settings.AI_MODEL
         self.max_context_entries = 50  # Limit context size
@@ -39,6 +45,17 @@ class AIAgent:
             print("[AIAgent] Creating OpenAI client...")
             self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
             print("[AIAgent] OpenAI client created successfully")
+
+            # Initialize Tavily client for web search
+            if settings.TAVILY_API_KEY and TavilyClient:
+                print("[AIAgent] Creating Tavily client for web search...")
+                self.tavily_client = TavilyClient(api_key=settings.TAVILY_API_KEY)
+                print("[AIAgent] Tavily client created successfully")
+            elif not settings.TAVILY_API_KEY:
+                print("[AIAgent] No Tavily API key provided, web search disabled")
+            elif not TavilyClient:
+                print("[AIAgent] Tavily library not installed, web search disabled")
+
             self.ready = True
             print(f"[AIAgent] AI agent ready with model: {self.model}")
 
@@ -71,8 +88,27 @@ class AIAgent:
                 metadata={"error": str(e)}
             )
     
+    async def _web_search(self, query: str) -> Dict[str, Any]:
+        """Perform web search using Tavily"""
+        if not self.tavily_client:
+            return {"error": "Web search not available"}
+
+        try:
+            print(f"[AIAgent] Performing web search for: {query}")
+            # Run sync Tavily call in thread pool
+            search_result = await asyncio.to_thread(
+                self.tavily_client.search,
+                query=query,
+                max_results=5
+            )
+            print(f"[AIAgent] Web search returned {len(search_result.get('results', []))} results")
+            return search_result
+        except Exception as e:
+            print(f"[AIAgent] Web search error: {e}")
+            return {"error": str(e)}
+
     async def _process_with_openai(self, message: AgentMessage) -> AgentResponse:
-        """Process message using OpenAI API"""
+        """Process message using OpenAI API with function calling for web search"""
         # Prepare context from browsing history
         context = await self._prepare_context(message.context)
 
@@ -85,16 +121,73 @@ class AIAgent:
             {"role": "user", "content": message.content}
         ]
 
+        # Define web search tool
+        tools = []
+        if self.tavily_client:
+            tools.append({
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for current information, news, or facts not in the browsing history. Use this when you need up-to-date information or when the user asks about topics outside their browsing history.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query to look up on the web"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            })
+
         # Call OpenAI API using asyncio.to_thread to run sync call in thread pool
         response = await asyncio.to_thread(
             self.client.chat.completions.create,
             model=self.model,
             messages=messages,
+            tools=tools if tools else None,
             max_tokens=1000,
             temperature=0.7
         )
 
-        content = response.choices[0].message.content
+        response_message = response.choices[0].message
+        tool_calls = response_message.tool_calls
+
+        # Handle function calls
+        if tool_calls:
+            messages.append(response_message)
+
+            for tool_call in tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+
+                if function_name == "web_search":
+                    search_results = await self._web_search(function_args["query"])
+
+                    # Add function response to messages
+                    messages.append({
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": function_name,
+                        "content": json.dumps(search_results)
+                    })
+
+            # Get final response after function calls
+            second_response = await asyncio.to_thread(
+                self.client.chat.completions.create,
+                model=self.model,
+                messages=messages,
+                max_tokens=1000,
+                temperature=0.7
+            )
+            content = second_response.choices[0].message.content
+            total_tokens = (response.usage.total_tokens if response.usage else 0) + \
+                          (second_response.usage.total_tokens if second_response.usage else 0)
+        else:
+            content = response_message.content
+            total_tokens = response.usage.total_tokens if response.usage else None
 
         return AgentResponse(
             content=content,
@@ -103,7 +196,8 @@ class AIAgent:
             metadata={
                 "model": self.model,
                 "context_entries": len(context.get("recent_history", [])),
-                "tokens_used": response.usage.total_tokens if response.usage else None
+                "tokens_used": total_tokens,
+                "used_web_search": bool(tool_calls)
             }
         )
     
