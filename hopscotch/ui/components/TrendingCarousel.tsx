@@ -16,12 +16,14 @@ export default function TrendingCarousel() {
   useEffect(() => {
     async function fetchTrending() {
       try {
+        console.log("[TrendingCarousel] Fetching trending categories...");
         setLoading(true);
         const response = await apiClient.getTrendingCategories(7, 5);
+        console.log("[TrendingCarousel] Received response:", response);
         setCategories(response.categories);
         setError(null);
       } catch (err) {
-        console.error("Error fetching trending categories:", err);
+        console.error("[TrendingCarousel] Error fetching trending categories:", err);
         setError("Failed to load trending topics");
         // Set empty array on error
         setCategories([]);

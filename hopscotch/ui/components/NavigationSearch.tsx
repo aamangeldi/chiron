@@ -32,10 +32,12 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
   useEffect(() => {
     async function fetchRecentHistory() {
       try {
+        console.log("[NavigationSearch] Fetching recent history...");
         const history = await apiClient.getRecentHistory(24, 50);
+        console.log("[NavigationSearch] Received history entries:", history.length);
         setRecentHistory(history);
       } catch (error) {
-        console.error("Error fetching recent history:", error);
+        console.error("[NavigationSearch] Error fetching recent history:", error);
       }
     }
 

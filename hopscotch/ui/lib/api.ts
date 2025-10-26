@@ -65,23 +65,47 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retries = 3
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+          ...options,
+        });
+
+        if (!response.ok) {
+          // Don't retry 4xx errors (client errors)
+          if (response.status >= 400 && response.status < 500) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+          }
+          // Retry 5xx errors (server errors) and network errors
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        const isLastAttempt = attempt === retries;
+
+        if (isLastAttempt) {
+          console.error(`[API] Request failed after ${retries + 1} attempts:`, error);
+          throw error;
+        }
+
+        // Exponential backoff: 500ms, 1000ms, 2000ms
+        const delay = 500 * Math.pow(2, attempt);
+        console.log(`[API] Request failed, retrying in ${delay}ms... (attempt ${attempt + 1}/${retries + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
 
-    return response.json();
+    throw new Error('Request failed after all retries');
   }
 
   // History API
