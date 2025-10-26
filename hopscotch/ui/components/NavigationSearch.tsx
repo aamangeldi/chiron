@@ -154,6 +154,17 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
 
     const { type, gridIndex } = button;
 
+    // Handle open tabs - open all 4 tiles in new tabs
+    if (type === 'open_tabs') {
+      session.tiles.forEach((tile) => {
+        if (tile.url) {
+          window.open(tile.url, '_blank', 'noopener,noreferrer');
+        }
+      });
+      console.log(`[NavigationSearch] Opened ${session.tiles.filter(t => t.url).length} tabs`);
+      return;
+    }
+
     // Map button type to action
     let action: ActionType;
     if (type === 'small_variation') {
@@ -189,9 +200,39 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
                 <p className="text-sm text-gray-600">
                   <span className="font-medium">Search:</span> {session.query}
                 </p>
-                <p className="text-xs text-gray-500 font-mono">
-                  Hop {session.hop}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs text-gray-500 font-mono">
+                    Hop {session.hop}
+                  </p>
+                  <div className="group relative">
+                    <svg
+                      className="w-3.5 h-3.5 text-gray-400 cursor-help"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    {/* Tooltip */}
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 text-white text-xs rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 pointer-events-none">
+                      <div className="space-y-1.5">
+                        <p className="font-semibold text-blue-300 mb-2">How to navigate:</p>
+                        <p><strong>Click a tile</strong> → Opens that page</p>
+                        <p><strong>S1-S4</strong> → Small variations</p>
+                        <p><strong>L1-L4</strong> → Large variations</p>
+                        <p><strong>🔄 Reroll</strong> → Fresh options</p>
+                        <p><strong>⧉ Open Tabs</strong> → Open all 4</p>
+                      </div>
+                      {/* Arrow */}
+                      <div className="absolute -top-1 right-3 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
               {session.actionLabel && (
                 <p className="text-xs text-blue-600 font-medium">
@@ -239,6 +280,7 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
               <p>🔍 <strong>S1-S4 buttons</strong> for small variations around each tile</p>
               <p>🎲 <strong>L1-L4 buttons</strong> for large variations (explore alternatives)</p>
               <p>🔄 <strong>Reroll</strong> for completely fresh options</p>
+              <p>⧉ <strong>Open Tabs</strong> to open all 4 results at once</p>
             </div>
           </div>
         )}

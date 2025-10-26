@@ -51,7 +51,11 @@ export default function ContentControls({ onControlClick, disabled = false }: Co
             onClick={() => !disabled && onControlClick(button)}
             className={getButtonStyles(button.type)}
             disabled={disabled}
-            title={`${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`}
+            title={
+              button.type === 'open_tabs'
+                ? 'Open all 4 tiles in new tabs'
+                : `${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`
+            }
           >
             {button.label}
           </button>

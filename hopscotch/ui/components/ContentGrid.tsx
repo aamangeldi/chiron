@@ -135,19 +135,6 @@ export default function ContentGrid({ tiles, onTileClick, selectedIndex }: Conte
                   <p className={`text-xs text-gray-600 flex-1 ${tile.image_url ? 'line-clamp-3' : 'line-clamp-4'}`}>
                     {tile.description}
                   </p>
-
-                  {/* Score indicator (optional, subtle) */}
-                  {tile.score > 0 && (
-                    <div className="mt-1.5 flex items-center gap-1">
-                      <div className="flex-1 bg-gray-200 rounded-full h-1">
-                        <div
-                          className="bg-blue-500 h-1 rounded-full transition-all"
-                          style={{ width: `${Math.min(100, tile.score * 10)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-400">{tile.score.toFixed(1)}</span>
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
