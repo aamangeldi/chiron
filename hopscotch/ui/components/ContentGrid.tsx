@@ -63,57 +63,92 @@ export default function ContentGrid({ tiles, onTileClick, selectedIndex }: Conte
             `}
           >
             {tile ? (
-              <div className="w-full h-full p-3 flex flex-col">
-                {/* Domain badge with favicon */}
-                <div className="flex items-center gap-2 mb-2">
-                  {tile.domain && (
+              <div className="w-full h-full flex flex-col overflow-hidden">
+                {/* Image section - top half */}
+                {tile.image_url ? (
+                  <div className="w-full h-1/2 bg-gray-100 relative flex-shrink-0">
                     <img
-                      src={`https://www.google.com/s2/favicons?domain=${tile.domain}&sz=16`}
-                      alt=""
-                      className="w-4 h-4"
+                      src={tile.image_url}
+                      alt={tile.title}
+                      className="w-full h-full object-cover"
                       onError={(e) => {
-                        // Hide favicon if it fails to load
-                        e.currentTarget.style.display = 'none';
+                        // Hide image container if fails to load
+                        e.currentTarget.parentElement!.style.display = 'none';
                       }}
                     />
-                  )}
-                  <span
-                    className={`
-                      text-xs px-2 py-0.5 rounded-full font-medium truncate flex-1
-                      ${getDomainColor(tile.domain || '')}
-                    `}
-                  >
-                    {truncateText(tile.domain || 'unknown', 20)}
-                  </span>
-                </div>
-
-                {/* Title with link indicator */}
-                <h3 className="text-sm font-bold text-gray-800 mb-2 line-clamp-2 flex-shrink-0 flex items-start gap-1">
-                  <span className="flex-1">{truncateText(tile.title, 60)}</span>
-                  {tile.url && (
-                    <svg className="w-3 h-3 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  )}
-                </h3>
-
-                {/* Description */}
-                <p className="text-xs text-gray-600 line-clamp-4 flex-1">
-                  {tile.description}
-                </p>
-
-                {/* Score indicator (optional, subtle) */}
-                {tile.score > 0 && (
-                  <div className="mt-2 flex items-center gap-1">
-                    <div className="flex-1 bg-gray-200 rounded-full h-1">
-                      <div
-                        className="bg-blue-500 h-1 rounded-full transition-all"
-                        style={{ width: `${Math.min(100, tile.score * 10)}%` }}
-                      />
+                    {/* Domain badge overlay */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
+                      {tile.domain && (
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${tile.domain}&sz=16`}
+                          alt=""
+                          className="w-3 h-3"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span className="text-xs font-medium text-gray-700 truncate max-w-[100px]">
+                        {truncateText(tile.domain || '', 15)}
+                      </span>
                     </div>
-                    <span className="text-xs text-gray-400">{tile.score.toFixed(1)}</span>
+                  </div>
+                ) : (
+                  // No image - show domain badge
+                  <div className="px-3 pt-3 pb-1 flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      {tile.domain && (
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${tile.domain}&sz=16`}
+                          alt=""
+                          className="w-4 h-4"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span
+                        className={`
+                          text-xs px-2 py-0.5 rounded-full font-medium truncate flex-1
+                          ${getDomainColor(tile.domain || '')}
+                        `}
+                      >
+                        {truncateText(tile.domain || 'unknown', 20)}
+                      </span>
+                    </div>
                   </div>
                 )}
+
+                {/* Content section - bottom half */}
+                <div className={`flex-1 p-3 flex flex-col ${tile.image_url ? 'pt-2' : 'pt-1'}`}>
+                  {/* Title with link indicator */}
+                  <h3 className="text-sm font-bold text-gray-800 mb-1.5 line-clamp-2 flex-shrink-0 flex items-start gap-1">
+                    <span className="flex-1">{truncateText(tile.title, 60)}</span>
+                    {tile.url && (
+                      <svg className="w-3 h-3 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    )}
+                  </h3>
+
+                  {/* Description */}
+                  <p className={`text-xs text-gray-600 flex-1 ${tile.image_url ? 'line-clamp-3' : 'line-clamp-4'}`}>
+                    {tile.description}
+                  </p>
+
+                  {/* Score indicator (optional, subtle) */}
+                  {tile.score > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <div className="flex-1 bg-gray-200 rounded-full h-1">
+                        <div
+                          className="bg-blue-500 h-1 rounded-full transition-all"
+                          style={{ width: `${Math.min(100, tile.score * 10)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-400">{tile.score.toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               // Empty placeholder

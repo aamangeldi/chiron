@@ -64,6 +64,7 @@ export interface SearchTile {
   title: string;
   description: string;
   domain: string;
+  image_url?: string | null;
   score: number;
   score_breakdown: Record<string, number>;
 }

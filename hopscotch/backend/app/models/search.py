@@ -22,6 +22,7 @@ class SearchTile(BaseModel):
     title: str
     description: str
     domain: str
+    image_url: Optional[str] = Field(default=None, description="Preview image URL")
     score: float = Field(ge=0.0, le=10.0, description="Overall score 0-10")
     score_breakdown: Dict[str, float] = Field(
         default_factory=dict,
@@ -168,6 +169,7 @@ class Candidate(BaseModel):
     url: str
     title: str
     content: str  # Longer content for scoring
+    image_url: Optional[str] = None  # Image from search result
     score: float = 0.0
     score_breakdown: Dict[str, float] = Field(default_factory=dict)
 
@@ -185,6 +187,7 @@ class Candidate(BaseModel):
             title=self.title,
             description=description,
             domain=domain,
+            image_url=self.image_url,
             score=self.score,
             score_breakdown=self.score_breakdown
         )

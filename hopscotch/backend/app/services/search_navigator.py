@@ -6,10 +6,12 @@ import asyncio
 import json
 import time
 import uuid
+import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
+import aiohttp
 from openai import OpenAI
 
 try:
@@ -145,13 +147,33 @@ class SearchNavigator:
 
         # Convert web results to candidates
         candidates = []
+        images_found = 0
+
+        # Debug: Print first result to see structure
+        if web_results:
+            print(f"[SearchNavigator] Sample result keys: {web_results[0].keys()}")
+            print(f"[SearchNavigator] Sample result: {web_results[0]}")
+
         for result in web_results:
             try:
+                # Extract image URL if available (try multiple fields Tavily might use)
+                image_url = (
+                    result.get("image") or
+                    result.get("image_url") or
+                    result.get("thumbnail") or
+                    result.get("img")
+                )
+
+                if image_url:
+                    images_found += 1
+                    print(f"[SearchNavigator] Found image for {result.get('title', 'Unknown')[:40]}: {image_url[:60]}")
+
                 candidates.append(
                     Candidate(
                         url=result.get("url", ""),
                         title=result.get("title", "Untitled"),
                         content=result.get("content", ""),
+                        image_url=image_url,
                         score=0.0,
                         score_breakdown={}
                     )
@@ -160,7 +182,92 @@ class SearchNavigator:
                 print(f"[SearchNavigator] Error parsing result: {e}")
                 continue
 
+        print(f"[SearchNavigator] Generated {len(candidates)} candidates, {images_found} with images")
+
+        # Fetch images for candidates without them (async, in parallel)
+        if images_found < len(candidates):
+            print(f"[SearchNavigator] Fetching images for {len(candidates) - images_found} candidates without images...")
+            candidates = await self._enrich_with_images(candidates)
+
         return candidates
+
+    async def _enrich_with_images(self, candidates: List[Candidate]) -> List[Candidate]:
+        """Fetch Open Graph images for candidates that don't have images."""
+        tasks = []
+        indices_to_fetch = []
+
+        for i, candidate in enumerate(candidates):
+            if not candidate.image_url and candidate.url:
+                tasks.append(self._extract_og_image(candidate.url))
+                indices_to_fetch.append(i)
+
+        if not tasks:
+            return candidates
+
+        # Fetch all images in parallel
+        images = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Update candidates with fetched images
+        enriched_count = 0
+        for idx, image_url in zip(indices_to_fetch, images):
+            if isinstance(image_url, str) and image_url:
+                candidates[idx].image_url = image_url
+                enriched_count += 1
+
+        print(f"[SearchNavigator] Enriched {enriched_count} candidates with fetched images")
+        return candidates
+
+    async def _extract_og_image(self, url: str, timeout: int = 3) -> Optional[str]:
+        """Extract Open Graph image from a URL."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    url,
+                    timeout=aiohttp.ClientTimeout(total=timeout),
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (compatible; HopscotchBot/1.0)'
+                    }
+                ) as response:
+                    if response.status != 200:
+                        return None
+
+                    html = await response.text()
+
+                    # Extract og:image meta tag
+                    og_image_match = re.search(
+                        r'<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']',
+                        html,
+                        re.IGNORECASE
+                    )
+                    if og_image_match:
+                        return og_image_match.group(1)
+
+                    # Try reverse order (content before property)
+                    og_image_match = re.search(
+                        r'<meta\s+content=["\']([^"\']+)["\']\s+property=["\']og:image["\']',
+                        html,
+                        re.IGNORECASE
+                    )
+                    if og_image_match:
+                        return og_image_match.group(1)
+
+                    # Fallback: twitter:image
+                    twitter_image_match = re.search(
+                        r'<meta\s+(?:name|property)=["\']twitter:image["\']\s+content=["\']([^"\']+)["\']',
+                        html,
+                        re.IGNORECASE
+                    )
+                    if twitter_image_match:
+                        return twitter_image_match.group(1)
+
+                    return None
+
+        except asyncio.TimeoutError:
+            print(f"[SearchNavigator] Timeout fetching image for {url[:50]}")
+            return None
+        except Exception as e:
+            print(f"[SearchNavigator] Error extracting image from {url[:50]}: {e}")
+            return None
 
     def _build_search_query(self, request: NavigateRequest, session: NavigationSession) -> str:
         """Build search query based on action type and context."""
@@ -234,10 +341,12 @@ class SearchNavigator:
         try:
             print(f"[SearchNavigator] Searching web for: {query}")
             # Run sync Tavily call in thread pool
+            # Include images in search results
             search_result = await asyncio.to_thread(
                 self.tavily_client.search,
                 query=query,
-                max_results=max_results
+                max_results=max_results,
+                include_images=True  # Request images from Tavily
             )
             results = search_result.get("results", [])
             print(f"[SearchNavigator] Found {len(results)} web results")
@@ -539,6 +648,7 @@ Respond with ONLY a JSON array of 4 integers, like: [0, 2, 5, 7]"""
             title="No more results",
             description=f"Try refining your search for '{query}'",
             domain="",
+            image_url=None,
             score=0.0,
             score_breakdown={}
         )
