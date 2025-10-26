@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # AI Settings
     OPENAI_API_KEY: str = ""
     TAVILY_API_KEY: str = ""
-    AI_MODEL: str = "gpt-4"
+    AI_MODEL: str = "gpt-4o-mini"
 
     class Config:
         env_file = ".env"
