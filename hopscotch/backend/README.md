@@ -4,9 +4,9 @@ AI-powered browsing history assistant backend built with FastAPI and Python.
 
 ## Features
 
-- **Browser History Collection**: Extract browsing history from Chrome (and other browsers)
+- **Browser History Collection**: Extract browsing history from Arc and Chrome browsers
 - **AI-Powered Insights**: OpenAI integration for intelligent browsing analysis
-- **Background Sync**: Celery-based periodic history synchronization
+- **Auto-Sync on Startup**: Automatic history synchronization when backend starts
 - **RESTful API**: FastAPI with automatic OpenAPI documentation
 - **Data Analytics**: Pandas-powered browsing pattern analysis
 
@@ -16,8 +16,10 @@ AI-powered browsing history assistant backend built with FastAPI and Python.
 
 ```bash
 cd backend
-pip install -r requirements.txt
+uv sync
 ```
+
+Note: This project uses [uv](https://github.com/astral-sh/uv) for dependency management. Install it with `pip install uv`.
 
 ### 2. Configure Environment
 
@@ -29,22 +31,14 @@ cp env.example .env
 ### 3. Start the Backend
 
 ```bash
-# Development server
-python run.py
+# Development server (recommended)
+uv run python run.py
 
 # Or with uvicorn directly
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 4. Start Background Workers (Optional)
-
-```bash
-# Start Celery worker
-celery -A workers.celery_app worker --loglevel=info
-
-# Start Celery beat (for periodic tasks)
-celery -A workers.celery_app beat --loglevel=info
-```
+Browser history will be automatically synced on startup.
 
 ## API Documentation
 
@@ -57,8 +51,8 @@ Once running, visit:
 Key environment variables:
 
 - `OPENAI_API_KEY`: Your OpenAI API key for AI features
+- `TAVILY_API_KEY`: Your Tavily API key for web search (optional)
 - `DATABASE_URL`: Database connection string (default: SQLite)
-- `REDIS_URL`: Redis connection for Celery (default: localhost:6379)
 - `ALLOWED_ORIGINS`: CORS origins (comma-separated)
 
 ## Architecture
@@ -71,31 +65,28 @@ backend/
 │   ├── models/        # Pydantic models
 │   ├── services/      # Business logic services
 │   └── main.py        # FastAPI application
-├── workers/           # Celery background tasks
-└── requirements.txt   # Python dependencies
+├── pyproject.toml     # Python dependencies and project config
+└── uv.lock            # Locked dependency versions
 ```
 
 ## Services
 
 ### History Collector
-- Extracts browsing history from Chrome
-- Platform-specific path detection
+- Extracts browsing history from Arc and Chrome browsers
+- Platform-specific path detection (macOS, Windows, Linux)
 - Efficient data processing with pandas
+- Auto-sync on backend startup
 
 ### Storage Service
 - SQLAlchemy-based database operations
-- Bulk operations for performance
+- Batch operations for performance (handles 10,000+ entries)
 - Analytics and querying capabilities
 
 ### AI Agent
 - OpenAI GPT-4 integration
-- Browsing history context
-- Intelligent insights and suggestions
-
-### Background Sync
-- Celery-based periodic synchronization
-- Configurable sync intervals
-- Error handling and retry logic
+- Synchronous client with async wrapper for FastAPI
+- Browsing history context for intelligent insights
+- Real-time AI-powered suggestions
 
 ## Development
 
