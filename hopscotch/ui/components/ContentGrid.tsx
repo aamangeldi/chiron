@@ -1,45 +1,148 @@
-import Image from 'next/image';
+'use client';
+
+import { SearchTile } from '@/lib/api';
 import { GRID_SIZE, GRID_COLUMNS } from '@/constants/navigationSearch';
 
-export interface ContentItem {
-  id: number;
-  imageUrl?: string;
-  title?: string;
-}
-
 interface ContentGridProps {
-  items: ContentItem[];
-  onItemClick?: (index: number) => void;
+  tiles: SearchTile[];
+  onTileClick?: (index: number) => void;
+  selectedIndex?: number | null;
 }
 
-export default function ContentGrid({ items, onItemClick }: ContentGridProps) {
-  const gridItems = Array.from({ length: GRID_SIZE }, (_, i) => items[i] || { id: i });
+const getDomainColor = (domain: string): string => {
+  // Generate a consistent color based on TLD
+  const tld = domain.split('.').pop() || 'com';
+  const colors: Record<string, string> = {
+    'com': 'bg-blue-100 text-blue-700',
+    'org': 'bg-green-100 text-green-700',
+    'net': 'bg-purple-100 text-purple-700',
+    'edu': 'bg-yellow-100 text-yellow-700',
+    'gov': 'bg-red-100 text-red-700',
+    'io': 'bg-indigo-100 text-indigo-700',
+    'co': 'bg-pink-100 text-pink-700',
+  };
+  return colors[tld] || 'bg-gray-100 text-gray-700';
+};
+
+const truncateText = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+};
+
+export default function ContentGrid({ tiles, onTileClick, selectedIndex }: ContentGridProps) {
+  // Pad tiles to ensure exactly 4 items
+  const gridTiles: (SearchTile | null)[] = Array.from({ length: GRID_SIZE }, (_, i) => tiles[i] || null);
+
+  const handleTileClick = (tile: SearchTile | null, index: number) => {
+    if (!tile) return;
+
+    // If tile has a URL, open it in a new tab
+    if (tile.url) {
+      window.open(tile.url, '_blank', 'noopener,noreferrer');
+    }
+
+    // Also trigger callback for selection tracking
+    onTileClick?.(index);
+  };
 
   return (
-    <div className="w-full max-w-md mx-auto px-6 py-2">
+    <div className="w-full max-w-2xl mx-auto px-6 py-2">
       <div
-        className="grid gap-1"
+        className="grid gap-3"
         style={{ gridTemplateColumns: `repeat(${GRID_COLUMNS}, 1fr)` }}
       >
-        {gridItems.map((item, index) => (
+        {gridTiles.map((tile, index) => (
           <div
-            key={item.id}
-            onClick={() => onItemClick?.(index)}
-            className="aspect-square bg-gray-200 rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity relative group"
+            key={index}
+            onClick={() => handleTileClick(tile, index)}
+            className={`
+              aspect-square bg-white rounded-lg border-2 overflow-hidden
+              transition-all duration-200
+              ${tile && tile.url ? 'cursor-pointer hover:shadow-lg hover:scale-105 border-gray-200 hover:border-blue-400' : 'border-gray-100'}
+              ${selectedIndex === index ? 'ring-2 ring-blue-500 border-blue-500' : ''}
+            `}
           >
-            {item.imageUrl ? (
-              <Image
-                src={item.imageUrl}
-                alt={item.title || `Content ${index + 1}`}
-                fill
-                className="object-cover"
-              />
+            {tile ? (
+              <div className="w-full h-full flex flex-col overflow-hidden">
+                {/* Image section - top half */}
+                {tile.image_url ? (
+                  <div className="w-full h-1/2 bg-gray-100 relative flex-shrink-0">
+                    <img
+                      src={tile.image_url}
+                      alt={tile.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Hide image container if fails to load
+                        e.currentTarget.parentElement!.style.display = 'none';
+                      }}
+                    />
+                    {/* Domain badge overlay */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
+                      {tile.domain && (
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${tile.domain}&sz=16`}
+                          alt=""
+                          className="w-3 h-3"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span className="text-xs font-medium text-gray-700 truncate max-w-[100px]">
+                        {truncateText(tile.domain || '', 15)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  // No image - show domain badge
+                  <div className="px-3 pt-3 pb-1 flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      {tile.domain && (
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${tile.domain}&sz=16`}
+                          alt=""
+                          className="w-4 h-4"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span
+                        className={`
+                          text-xs px-2 py-0.5 rounded-full font-medium truncate flex-1
+                          ${getDomainColor(tile.domain || '')}
+                        `}
+                      >
+                        {truncateText(tile.domain || 'unknown', 20)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Content section - bottom half */}
+                <div className={`flex-1 p-3 flex flex-col ${tile.image_url ? 'pt-2' : 'pt-1'}`}>
+                  {/* Title with link indicator */}
+                  <h3 className="text-sm font-bold text-gray-800 mb-1.5 line-clamp-2 flex-shrink-0 flex items-start gap-1">
+                    <span className="flex-1">{truncateText(tile.title, 60)}</span>
+                    {tile.url && (
+                      <svg className="w-3 h-3 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    )}
+                  </h3>
+
+                  {/* Description */}
+                  <p className={`text-xs text-gray-600 flex-1 ${tile.image_url ? 'line-clamp-3' : 'line-clamp-4'}`}>
+                    {tile.description}
+                  </p>
+                </div>
+              </div>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <span className="text-2xl">{index + 1}</span>
+              // Empty placeholder
+              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                <span className="text-4xl font-light">{index + 1}</span>
               </div>
             )}
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all" />
           </div>
         ))}
       </div>

@@ -2,23 +2,25 @@ import { CONTROL_BUTTONS, ControlButton, ControlType } from '@/constants/navigat
 
 interface ContentControlsProps {
   onControlClick: (button: ControlButton) => void;
+  disabled?: boolean;
 }
 
-export default function ContentControls({ onControlClick }: ContentControlsProps) {
+export default function ContentControls({ onControlClick, disabled = false }: ContentControlsProps) {
   const getButtonStyles = (type: ControlType) => {
     const baseStyles = "px-3 py-1.5 rounded text-sm font-medium transition-colors";
+    const disabledStyles = disabled ? "opacity-50 cursor-not-allowed" : "";
 
     switch (type) {
       case ControlType.SMALL_VARIATION:
-        return `${baseStyles} bg-blue-600 hover:bg-blue-700 text-white`;
+        return `${baseStyles} ${disabledStyles} bg-blue-600 hover:bg-blue-700 text-white`;
       case ControlType.LARGE_VARIATION:
-        return `${baseStyles} bg-purple-600 hover:bg-purple-700 text-white`;
+        return `${baseStyles} ${disabledStyles} bg-purple-600 hover:bg-purple-700 text-white`;
       case ControlType.REROLL:
-        return `${baseStyles} bg-green-600 hover:bg-green-700 text-white`;
+        return `${baseStyles} ${disabledStyles} bg-green-600 hover:bg-green-700 text-white`;
       case ControlType.OPEN_TABS:
-        return `${baseStyles} bg-gray-600 hover:bg-gray-700 text-white`;
+        return `${baseStyles} ${disabledStyles} bg-gray-600 hover:bg-gray-700 text-white`;
       default:
-        return `${baseStyles} bg-gray-500 hover:bg-gray-600 text-white`;
+        return `${baseStyles} ${disabledStyles} bg-gray-500 hover:bg-gray-600 text-white`;
     }
   };
 
@@ -32,8 +34,9 @@ export default function ContentControls({ onControlClick }: ContentControlsProps
         {topRowButtons.map((button) => (
           <button
             key={button.id}
-            onClick={() => onControlClick(button)}
+            onClick={() => !disabled && onControlClick(button)}
             className={getButtonStyles(button.type)}
+            disabled={disabled}
             title={`${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`}
           >
             {button.label}
@@ -45,9 +48,14 @@ export default function ContentControls({ onControlClick }: ContentControlsProps
         {bottomRowButtons.map((button) => (
           <button
             key={button.id}
-            onClick={() => onControlClick(button)}
+            onClick={() => !disabled && onControlClick(button)}
             className={getButtonStyles(button.type)}
-            title={`${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`}
+            disabled={disabled}
+            title={
+              button.type === 'open_tabs'
+                ? 'Open all 4 tiles in new tabs'
+                : `${button.type} ${button.gridIndex !== undefined ? `for option ${button.gridIndex + 1}` : ''}`
+            }
           >
             {button.label}
           </button>

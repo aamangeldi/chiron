@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 import uvicorn
 from contextlib import asynccontextmanager
 
-from app.api import history, ai, sync
+from app.api import history, ai, sync, search
 from app.core.config import settings
 from app.services.storage import HistoryStorage
 from app.services.history_collector import HistoryCollectorManager
@@ -75,6 +75,7 @@ app.add_middleware(
 app.include_router(history.router, prefix="/api/history", tags=["history"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 app.include_router(sync.router, prefix="/api/sync", tags=["sync"])
+app.include_router(search.router, tags=["search"])
 
 
 @app.get("/")

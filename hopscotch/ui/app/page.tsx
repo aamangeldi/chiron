@@ -38,7 +38,7 @@ export default function Home() {
         {/* Header Image */}
         <div className="w-80 h-52 relative">
           <Image
-            src="/amangeldi_header.png"
+            src="/header.png"
             alt="Header"
             fill
             className="object-contain"
