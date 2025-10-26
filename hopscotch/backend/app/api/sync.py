@@ -55,40 +55,6 @@ async def start_sync(
         raise HTTPException(status_code=500, detail=f"Error starting sync: {str(e)}")
 
 
-@router.post("/full-sync", response_model=BaseResponse)
-async def start_full_sync(
-    background_tasks: BackgroundTasks = None,
-    collector_manager: HistoryCollectorManager = Depends(get_collector_manager),
-    storage: HistoryStorage = Depends(get_storage)
-):
-    """Start a full sync from all available browsers"""
-    try:
-        # Get all available browsers
-        available_browsers = []
-        for browser_type in BrowserType:
-            collector = collector_manager.get_collector(browser_type)
-            if collector and await collector.is_available():
-                available_browsers.append(browser_type)
-        
-        if not available_browsers:
-            raise HTTPException(status_code=400, detail="No browsers available for sync")
-        
-        # Start background sync task
-        background_tasks.add_task(
-            perform_sync,
-            available_browsers,
-            collector_manager,
-            storage
-        )
-        
-        return BaseResponse(
-            message=f"Full sync started for browsers: {', '.join([b.value for b in available_browsers])}"
-        )
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting full sync: {str(e)}")
-
-
 @router.get("/status", response_model=SyncStatus)
 async def get_sync_status(
     collector_manager: HistoryCollectorManager = Depends(get_collector_manager)
@@ -120,38 +86,6 @@ async def get_sync_status(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting sync status: {str(e)}")
-
-
-@router.get("/browsers", response_model=dict)
-async def get_available_browsers(
-    collector_manager: HistoryCollectorManager = Depends(get_collector_manager)
-):
-    """Get list of available browsers for sync"""
-    try:
-        available_browsers = {}
-        
-        for browser_type in BrowserType:
-            collector = collector_manager.get_collector(browser_type)
-            if collector:
-                is_available = await collector.is_available()
-                last_sync = await collector.get_last_sync_time()
-                
-                available_browsers[browser_type.value] = {
-                    "available": is_available,
-                    "last_sync": last_sync,
-                    "collector_registered": True
-                }
-            else:
-                available_browsers[browser_type.value] = {
-                    "available": False,
-                    "last_sync": None,
-                    "collector_registered": False
-                }
-        
-        return {"browsers": available_browsers}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting browser status: {str(e)}")
 
 
 async def perform_sync(

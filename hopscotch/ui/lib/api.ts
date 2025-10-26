@@ -134,38 +134,11 @@ class ApiClient {
     return this.request<HistoryEntry[]>(`/api/history/recent?${params}`);
   }
 
-  async getHistoryAnalytics(): Promise<Record<string, any>> {
-    return this.request<Record<string, any>>('/api/history/analytics');
-  }
-
-  async getDomainStats(days: number = 30, limit: number = 20): Promise<Record<string, any>> {
-    const params = new URLSearchParams({
-      days: days.toString(),
-      limit: limit.toString(),
-    });
-    
-    return this.request<Record<string, any>>(`/api/history/domains?${params}`);
-  }
-
   // AI API
-  async chatWithAgent(message: AgentMessage): Promise<AgentResponse> {
-    return this.request<AgentResponse>('/api/ai/chat', {
-      method: 'POST',
-      body: JSON.stringify(message),
-    });
-  }
-
   async chatWithContext(message: string, context?: Record<string, any>): Promise<AgentResponse> {
     return this.request<AgentResponse>('/api/ai/chat/with-context', {
       method: 'POST',
       body: JSON.stringify({ message, context }),
-    });
-  }
-
-  async getSuggestions(context?: Record<string, any>): Promise<Record<string, any>> {
-    return this.request<Record<string, any>>('/api/ai/suggestions', {
-      method: 'GET',
-      body: context ? JSON.stringify({ context }) : undefined,
     });
   }
 
@@ -195,24 +168,10 @@ class ApiClient {
     });
   }
 
-  async startFullSync(): Promise<{ success: boolean; message: string }> {
-    return this.request<{ success: boolean; message: string }>('/api/sync/full-sync', {
-      method: 'POST',
-    });
-  }
-
   async getSyncStatus(): Promise<SyncStatus> {
     return this.request<SyncStatus>('/api/sync/status');
   }
 
-  async getAvailableBrowsers(): Promise<Record<string, any>> {
-    return this.request<Record<string, any>>('/api/sync/browsers');
-  }
-
-  // Health check
-  async healthCheck(): Promise<Record<string, any>> {
-    return this.request<Record<string, any>>('/health');
-  }
 }
 
 // Export singleton instance

@@ -19,23 +19,6 @@ def get_ai_agent() -> AIAgent:
     return app.state.ai_agent
 
 
-@router.post("/chat", response_model=AgentResponse)
-async def chat_with_agent(
-    message: AgentMessage,
-    ai_agent: AIAgent = Depends(get_ai_agent)
-):
-    """Send a message to the AI agent"""
-    try:
-        if not ai_agent.is_ready():
-            raise HTTPException(status_code=503, detail="AI agent not ready")
-        
-        response = await ai_agent.send_message(message)
-        return response
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
-
-
 @router.get("/status", response_model=dict)
 async def get_ai_status(
     ai_agent: AIAgent = Depends(get_ai_agent)
@@ -70,35 +53,6 @@ async def chat_with_history_context(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
-
-
-@router.get("/suggestions", response_model=dict)
-async def get_browsing_suggestions(
-    context: Optional[Dict[str, Any]] = None,
-    ai_agent: AIAgent = Depends(get_ai_agent)
-):
-    """Get AI-powered browsing suggestions based on history"""
-    try:
-        if not ai_agent.is_ready():
-            raise HTTPException(status_code=503, detail="AI agent not ready")
-
-        # Create a message asking for suggestions
-        message = AgentMessage(
-            content="Based on my browsing history, what suggestions do you have for me? Please provide actionable insights and recommendations.",
-            context=context or {}
-        )
-
-        response = await ai_agent.send_message(message)
-
-        return {
-            "suggestions": response.content,
-            "confidence": response.confidence,
-            "sources": response.sources,
-            "metadata": response.metadata
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting suggestions: {str(e)}")
 
 
 @router.get("/trending", response_model=dict)
