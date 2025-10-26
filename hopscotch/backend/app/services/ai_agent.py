@@ -128,7 +128,20 @@ class AIAgent:
                 "type": "function",
                 "function": {
                     "name": "web_search",
-                    "description": "Search the web for current information, news, or facts not in the browsing history. Use this when you need up-to-date information or when the user asks about topics outside their browsing history.",
+                    "description": """Search the web for current information, news, or real-time data.
+
+ONLY use this when:
+- User asks for latest/current/today's news, events, or information
+- User asks about real-time data (sports scores, weather, stock prices)
+- Information is clearly time-sensitive and not in browsing history
+
+DO NOT use this when:
+- User asks about "my browsing history", "my searches", "what I visited", "sites I looked at"
+- User asks to analyze or summarize their browsing patterns
+- The question is about personal browsing activity
+- The browsing history context already contains relevant information
+
+When in doubt, prefer using the browsing history context over web search.""",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -269,7 +282,11 @@ class AIAgent:
         """Build system prompt with browsing history context"""
         prompt = """You are Hopscotch, an AI assistant that helps users understand and interact with their browsing history. You have access to their recent browsing data and can provide insights, answer questions, and make suggestions based on their web activity.
 
-Guidelines:
+IMPORTANT Guidelines:
+- ALWAYS check the browsing history context FIRST before answering questions about the user's activity
+- When user asks about "my searches", "my history", "what I visited", "sites I looked at" - use ONLY the browsing history provided below
+- Use web search ONLY for current news, events, or real-time information (sports scores, weather, etc.)
+- When in doubt, prefer browsing history over web search
 - Be helpful and insightful about their browsing patterns
 - Respect privacy and don't share specific URLs unless relevant
 - Provide actionable insights and suggestions
