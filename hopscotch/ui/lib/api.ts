@@ -56,6 +56,33 @@ export interface SyncStatus {
   error_message?: string;
 }
 
+// Search Navigation API
+export type ActionType = 'initial' | 'pick' | 'vary_small' | 'vary_large' | 'reroll';
+
+export interface SearchTile {
+  url: string;
+  title: string;
+  description: string;
+  domain: string;
+  score: number;
+  score_breakdown: Record<string, number>;
+}
+
+export interface NavigateRequest {
+  query: string;
+  action: ActionType;
+  selected_index?: number; // 0-3 for pick/vary actions
+  session_id?: string;
+}
+
+export interface NavigateResponse {
+  tiles: SearchTile[]; // Exactly 4 tiles
+  session_id: string;
+  hop: number;
+  debug_timing?: Record<string, number>;
+  suggested_action?: string;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -170,6 +197,18 @@ class ApiClient {
 
   async getSyncStatus(): Promise<SyncStatus> {
     return this.request<SyncStatus>('/api/sync/status');
+  }
+
+  // Search Navigation API
+  async navigate(request: NavigateRequest): Promise<NavigateResponse> {
+    return this.request<NavigateResponse>('/api/search/navigate', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getSession(sessionId: string): Promise<Record<string, any>> {
+    return this.request<Record<string, any>>(`/api/search/session/${sessionId}`);
   }
 
 }

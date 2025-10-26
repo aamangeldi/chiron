@@ -2,47 +2,34 @@
 
 import { useState, useRef, useEffect } from 'react';
 import SearchInput from './SearchInput';
-import ContentGrid, { ContentItem } from './ContentGrid';
+import ContentGrid from './ContentGrid';
 import ContentControls from './ContentControls';
-import { ControlButton, HARDCODED_IMAGES } from '@/constants/navigationSearch';
-import { apiClient } from '@/lib/api';
+import { ControlButton } from '@/constants/navigationSearch';
+import { apiClient, SearchTile, ActionType } from '@/lib/api';
 
-export interface SearchResult {
+export interface SearchSession {
   id: string;
   query: string;
-  items: ContentItem[];
-  response?: string;
+  sessionId: string;
+  hop: number;
+  tiles: SearchTile[];
+  selectedIndex: number | null;
   timestamp: number;
+  action?: ActionType;
+  actionLabel?: string;
 }
 
 interface NavigationSearchProps {
-  onSearchHistoryChange?: (searches: SearchResult[]) => void;
+  onSearchHistoryChange?: (searches: SearchSession[]) => void;
   scrollToSearchId?: string | null;
 }
 
 export default function NavigationSearch({ onSearchHistoryChange, scrollToSearchId }: NavigationSearchProps) {
   const [searchValue, setSearchValue] = useState('');
-  const [lastSearchValue, setLastSearchValue] = useState('');
-  const [searchHistory, setSearchHistory] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [recentHistory, setRecentHistory] = useState<any[]>([]);
+  const [searchHistory, setSearchHistory] = useState<SearchSession[]>([]);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [currentSession, setCurrentSession] = useState<SearchSession | null>(null);
   const searchRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-
-  // Fetch recent history for context
-  useEffect(() => {
-    async function fetchRecentHistory() {
-      try {
-        console.log("[NavigationSearch] Fetching recent history...");
-        const history = await apiClient.getRecentHistory(24, 50);
-        console.log("[NavigationSearch] Received history entries:", history.length);
-        setRecentHistory(history);
-      } catch (error) {
-        console.error("[NavigationSearch] Error fetching recent history:", error);
-      }
-    }
-
-    fetchRecentHistory();
-  }, []);
 
   // Auto-scroll to a search when scrollToSearchId changes
   useEffect(() => {
@@ -51,123 +38,209 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
     }
   }, [scrollToSearchId]);
 
-  const handleSearch = async () => {
-    if (searchValue.trim() && !isSearching) {
-      setLastSearchValue(searchValue);
-      setIsSearching(true);
+  const performNavigation = async (
+    query: string,
+    action: ActionType,
+    selectedIndex?: number,
+    sessionId?: string
+  ) => {
+    setIsNavigating(true);
 
-      try {
-        // Prepare context with recent browsing history
-        const context = {
-          recent_history: recentHistory.slice(0, 50).map((entry) => ({
-            url: entry.url,
-            title: entry.title || "",
-            visit_time: entry.visit_time,
-            domain: entry.metadata?.domain || "",
-          })),
-        };
+    try {
+      console.log(`[NavigationSearch] Navigating: action=${action}, query=${query}, selectedIndex=${selectedIndex}`);
 
-        // Query AI agent
-        const aiResponse = await apiClient.chatWithContext(searchValue, context);
+      const response = await apiClient.navigate({
+        query,
+        action,
+        selected_index: selectedIndex,
+        session_id: sessionId,
+      });
 
-        const newSearch: SearchResult = {
-          id: `search-${Date.now()}`,
-          query: searchValue,
-          response: aiResponse.content,
-          items: HARDCODED_IMAGES.map((imageUrl, index) => ({
-            id: index,
-            imageUrl,
-            title: `Option ${index + 1}`,
-          })),
-          timestamp: Date.now(),
-        };
+      console.log(`[NavigationSearch] Navigation response: hop=${response.hop}, tiles=${response.tiles.length}`);
 
-        const updatedHistory = [...searchHistory, newSearch];
-        setSearchHistory(updatedHistory);
-
-        // Notify parent about search history change
-        onSearchHistoryChange?.(updatedHistory);
-
-        // Auto-scroll to the new search after a brief delay to let it render
-        setTimeout(() => {
-          searchRefs.current[newSearch.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
-      } catch (error) {
-        console.error("Error querying AI:", error);
-
-        // Fallback to hardcoded response on error
-        const newSearch: SearchResult = {
-          id: `search-${Date.now()}`,
-          query: searchValue,
-          response: "Sorry, I couldn't connect to the AI agent. Please make sure the backend is running.",
-          items: HARDCODED_IMAGES.map((imageUrl, index) => ({
-            id: index,
-            imageUrl,
-            title: `Option ${index + 1}`,
-          })),
-          timestamp: Date.now(),
-        };
-
-        const updatedHistory = [...searchHistory, newSearch];
-        setSearchHistory(updatedHistory);
-        onSearchHistoryChange?.(updatedHistory);
-      } finally {
-        setIsSearching(false);
+      // Generate action label
+      let actionLabel = '';
+      if (action === 'initial') {
+        actionLabel = 'Initial search';
+      } else if (action === 'vary_small' && selectedIndex !== undefined) {
+        actionLabel = `Small variation from tile ${selectedIndex + 1}`;
+      } else if (action === 'vary_large' && selectedIndex !== undefined) {
+        actionLabel = `Large variation from tile ${selectedIndex + 1}`;
+      } else if (action === 'reroll') {
+        actionLabel = 'Reroll (new options)';
+      } else if (action === 'pick' && selectedIndex !== undefined) {
+        actionLabel = `Exploring tile ${selectedIndex + 1}`;
       }
+
+      const newSession: SearchSession = {
+        id: `search-${Date.now()}`,
+        query,
+        sessionId: response.session_id,
+        hop: response.hop,
+        tiles: response.tiles,
+        selectedIndex: selectedIndex ?? null,
+        timestamp: Date.now(),
+        action,
+        actionLabel,
+      };
+
+      // Always add as a new grid entry (never replace)
+      const updatedHistory = [...searchHistory, newSession];
+      setSearchHistory(updatedHistory);
+      setCurrentSession(newSession);
+      onSearchHistoryChange?.(updatedHistory);
+
+      // Auto-scroll to new grid
+      setTimeout(() => {
+        searchRefs.current[newSession.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+
+    } catch (error) {
+      console.error("[NavigationSearch] Navigation error:", error);
+
+      // Show error message to user
+      const errorSession: SearchSession = {
+        id: `search-${Date.now()}`,
+        query,
+        sessionId: '',
+        hop: 0,
+        tiles: [
+          {
+            url: '',
+            title: 'Error',
+            description: `Failed to navigate: ${error}. Please make sure the backend is running.`,
+            domain: '',
+            score: 0,
+            score_breakdown: {},
+          },
+          { url: '', title: 'No results', description: 'Try again', domain: '', score: 0, score_breakdown: {} },
+          { url: '', title: 'No results', description: 'Try again', domain: '', score: 0, score_breakdown: {} },
+          { url: '', title: 'No results', description: 'Try again', domain: '', score: 0, score_breakdown: {} },
+        ],
+        selectedIndex: null,
+        timestamp: Date.now(),
+      };
+
+      const updatedHistory = [...searchHistory, errorSession];
+      setSearchHistory(updatedHistory);
+      onSearchHistoryChange?.(updatedHistory);
+    } finally {
+      setIsNavigating(false);
     }
   };
 
-  const handleRedo = () => {
-    if (lastSearchValue) {
-      setSearchValue(lastSearchValue);
-      setTimeout(() => handleSearch(), 0);
+  const handleSearch = async () => {
+    if (searchValue.trim() && !isNavigating) {
+      await performNavigation(searchValue, 'initial');
     }
   };
 
-  const handleItemClick = (index: number) => {
-    console.log('Content item clicked:', index);
+  const handleTileClick = (sessionId: string, index: number) => {
+    // Tiles now open URLs directly via ContentGrid
+    // Just update visual selection for reference
+    const updatedHistory = searchHistory.map(s =>
+      s.id === sessionId ? { ...s, selectedIndex: index } : s
+    );
+    setSearchHistory(updatedHistory);
+    console.log(`[NavigationSearch] Tile ${index} selected (opened in new tab)`);
   };
 
-  const handleControlClick = (button: ControlButton) => {
-    console.log('Control clicked:', button);
+  const handleControlClick = (button: ControlButton, sessionId: string) => {
+    const session = searchHistory.find(s => s.id === sessionId);
+    if (!session || isNavigating) return;
+
+    console.log(`[NavigationSearch] Control clicked: button=${button.label}, session=${sessionId}`);
+
+    const { type, gridIndex } = button;
+
+    // Map button type to action
+    let action: ActionType;
+    if (type === 'small_variation') {
+      action = 'vary_small';
+    } else if (type === 'large_variation') {
+      action = 'vary_large';
+    } else if (type === 'reroll') {
+      action = 'reroll';
+      // Reroll doesn't need an index
+      performNavigation(session.query, action, undefined, session.sessionId);
+      return;
+    } else {
+      return;
+    }
+
+    // Perform variation with the tile index
+    performNavigation(session.query, action, gridIndex, session.sessionId);
   };
 
   return (
     <>
       {/* Results area */}
-      <div className="w-full py-4">
-        {searchHistory.map((search) => (
+      <div className="w-full py-4 pb-24">
+        {searchHistory.map((session) => (
           <div
-            key={search.id}
-            ref={(el) => (searchRefs.current[search.id] = el)}
+            key={session.id}
+            ref={(el) => (searchRefs.current[session.id] = el)}
             className="mb-8"
           >
-            {/* Display search query */}
-            <div className="w-full max-w-md mx-auto px-6 pb-2">
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Search:</span> {search.query}
-              </p>
+            {/* Display search query and hop counter */}
+            <div className="w-full max-w-2xl mx-auto px-6 pb-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Search:</span> {session.query}
+                </p>
+                <p className="text-xs text-gray-500 font-mono">
+                  Hop {session.hop}
+                </p>
+              </div>
+              {session.actionLabel && (
+                <p className="text-xs text-blue-600 font-medium">
+                  {session.actionLabel}
+                </p>
+              )}
             </div>
 
-            {/* Display AI response */}
-            {search.response && (
-              <div className="w-full max-w-2xl mx-auto px-6 py-4 mb-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{search.response}</p>
+            {/* Loading indicator */}
+            {isNavigating && session.id === searchHistory[searchHistory.length - 1]?.id && (
+              <div className="w-full max-w-2xl mx-auto px-6 py-2">
+                <div className="flex items-center gap-2 text-blue-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span className="text-sm">Navigating search space...</span>
                 </div>
               </div>
             )}
 
             <ContentGrid
-              items={search.items}
-              onItemClick={handleItemClick}
+              tiles={session.tiles}
+              onTileClick={(index) => handleTileClick(session.id, index)}
+              selectedIndex={session.selectedIndex}
             />
 
-            <div className="w-full max-w-md mx-auto px-6 pt-2">
-              <ContentControls onControlClick={handleControlClick} />
+            <div className="w-full max-w-2xl mx-auto px-6 pt-2">
+              <ContentControls
+                onControlClick={(button) => handleControlClick(button, session.id)}
+                disabled={isNavigating}
+              />
             </div>
           </div>
         ))}
+
+        {/* Empty state */}
+        {searchHistory.length === 0 && !isNavigating && (
+          <div className="w-full max-w-2xl mx-auto px-6 py-16 text-center">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Discover through Navigation
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Search to start exploring. Navigate through 4 options at each hop to discover new content.
+            </p>
+            <div className="text-sm text-gray-500 space-y-2">
+              <p>🔗 <strong>Click a tile</strong> to open that page in a new tab</p>
+              <p>🔍 <strong>S1-S4 buttons</strong> for small variations around each tile</p>
+              <p>🎲 <strong>L1-L4 buttons</strong> for large variations (explore alternatives)</p>
+              <p>🔄 <strong>Reroll</strong> for completely fresh options</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Fixed bottom search bar */}
@@ -178,15 +251,16 @@ export default function NavigationSearch({ onSearchHistoryChange, scrollToSearch
               value={searchValue}
               onChange={setSearchValue}
               onSubmit={handleSearch}
+              disabled={isNavigating}
             />
           </div>
           <button
-            onClick={handleRedo}
-            disabled={!lastSearchValue}
-            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded transition-colors text-lg"
-            title="Redo last search"
+            onClick={handleSearch}
+            disabled={!searchValue.trim() || isNavigating}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded transition-colors text-sm font-medium"
+            title="Start new search"
           >
-            ↻
+            {isNavigating ? '...' : 'Go'}
           </button>
         </div>
       </div>
