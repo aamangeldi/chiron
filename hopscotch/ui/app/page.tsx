@@ -35,17 +35,6 @@ export default function Home() {
       </nav>
 
       <div className="flex flex-col items-center pt-24 pb-20" style={{ paddingRight: 'var(--hopscotch-width)' }}>
-        {/* Header Image */}
-        <div className="w-80 h-52 relative">
-          <Image
-            src="/header.png"
-            alt="Header"
-            fill
-            className="object-contain"
-            priority
-          />
-        </div>
-
         {/* Trending Topics Carousel */}
         <TrendingCarousel />
 

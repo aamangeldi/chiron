@@ -18,7 +18,7 @@ export default function TrendingCarousel() {
       try {
         console.log("[TrendingCarousel] Fetching trending categories...");
         setLoading(true);
-        const response = await apiClient.getTrendingCategories(7, 5);
+        const response = await apiClient.getTrendingCategories(7, 15);
         console.log("[TrendingCarousel] Received response:", response);
         setCategories(response.categories);
         setError(null);
