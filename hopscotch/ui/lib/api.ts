@@ -1,0 +1,221 @@
+/**
+ * API client for Hopscotch backend
+ */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export interface HistoryEntry {
+  id: string;
+  url: string;
+  title?: string;
+  visit_time: string;
+  browser: 'chrome' | 'firefox' | 'safari' | 'edge' | 'arc';
+  visit_count: number;
+  metadata?: Record<string, any>;
+}
+
+export interface HistoryQuery {
+  start_date?: string;
+  end_date?: string;
+  browser?: string;
+  search_term?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface HistoryQueryResult {
+  entries: HistoryEntry[];
+  total: number;
+  has_more: boolean;
+}
+
+export interface AgentMessage {
+  content: string;
+  context?: Record<string, any>;
+  user_id?: string;
+  session_id?: string;
+}
+
+export interface AgentResponse {
+  content: string;
+  confidence?: number;
+  sources?: Array<{
+    type: string;
+    url: string;
+    title: string;
+    domain: string;
+  }>;
+  metadata?: Record<string, any>;
+  timestamp: string;
+}
+
+export interface SyncStatus {
+  status: 'running' | 'completed' | 'failed' | 'never';
+  last_sync?: string;
+  entries_synced: number;
+  error_message?: string;
+}
+
+// Search Navigation API
+export type ActionType = 'initial' | 'pick' | 'vary_small' | 'vary_large' | 'reroll';
+
+export interface SearchTile {
+  url: string;
+  title: string;
+  description: string;
+  domain: string;
+  image_url?: string | null;
+  score: number;
+  score_breakdown: Record<string, number>;
+}
+
+export interface NavigateRequest {
+  query: string;
+  action: ActionType;
+  selected_index?: number; // 0-3 for pick/vary actions
+  session_id?: string;
+}
+
+export interface NavigateResponse {
+  tiles: SearchTile[]; // Exactly 4 tiles
+  session_id: string;
+  hop: number;
+  debug_timing?: Record<string, number>;
+  suggested_action?: string;
+}
+
+class ApiClient {
+  private baseUrl: string;
+
+  constructor(baseUrl: string = API_BASE_URL) {
+    this.baseUrl = baseUrl;
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    retries = 3
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+          ...options,
+        });
+
+        if (!response.ok) {
+          // Don't retry 4xx errors (client errors)
+          if (response.status >= 400 && response.status < 500) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+          }
+          // Retry 5xx errors (server errors) and network errors
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        const isLastAttempt = attempt === retries;
+
+        if (isLastAttempt) {
+          console.error(`[API] Request failed after ${retries + 1} attempts:`, error);
+          throw error;
+        }
+
+        // Exponential backoff: 500ms, 1000ms, 2000ms
+        const delay = 500 * Math.pow(2, attempt);
+        console.log(`[API] Request failed, retrying in ${delay}ms... (attempt ${attempt + 1}/${retries + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    throw new Error('Request failed after all retries');
+  }
+
+  // History API
+  async getHistory(query: HistoryQuery = {}): Promise<HistoryQueryResult> {
+    const params = new URLSearchParams();
+    
+    if (query.start_date) params.append('start_date', query.start_date);
+    if (query.end_date) params.append('end_date', query.end_date);
+    if (query.browser) params.append('browser', query.browser);
+    if (query.search_term) params.append('search_term', query.search_term);
+    if (query.limit) params.append('limit', query.limit.toString());
+    if (query.offset) params.append('offset', query.offset.toString());
+
+    const queryString = params.toString();
+    const endpoint = `/api/history/${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<HistoryQueryResult>(endpoint);
+  }
+
+  async getRecentHistory(hours: number = 24, limit: number = 50): Promise<HistoryEntry[]> {
+    const params = new URLSearchParams({
+      hours: hours.toString(),
+      limit: limit.toString(),
+    });
+    
+    return this.request<HistoryEntry[]>(`/api/history/recent?${params}`);
+  }
+
+  // AI API
+  async chatWithContext(message: string, context?: Record<string, any>): Promise<AgentResponse> {
+    return this.request<AgentResponse>('/api/ai/chat/with-context', {
+      method: 'POST',
+      body: JSON.stringify({ message, context }),
+    });
+  }
+
+  async getAIStatus(): Promise<Record<string, any>> {
+    return this.request<Record<string, any>>('/api/ai/status');
+  }
+
+  async getTrendingCategories(days: number = 7, limit: number = 5): Promise<{
+    categories: Array<{ name: string; description: string }>;
+    period_days: number;
+    source: string;
+    message?: string;
+  }> {
+    const params = new URLSearchParams({
+      days: days.toString(),
+      limit: limit.toString(),
+    });
+
+    return this.request(`/api/ai/trending?${params}`);
+  }
+
+  // Sync API
+  async startSync(browsers?: string[]): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/api/sync/start', {
+      method: 'POST',
+      body: JSON.stringify({ browsers }),
+    });
+  }
+
+  async getSyncStatus(): Promise<SyncStatus> {
+    return this.request<SyncStatus>('/api/sync/status');
+  }
+
+  // Search Navigation API
+  async navigate(request: NavigateRequest): Promise<NavigateResponse> {
+    return this.request<NavigateResponse>('/api/search/navigate', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getSession(sessionId: string): Promise<Record<string, any>> {
+    return this.request<Record<string, any>>(`/api/search/session/${sessionId}`);
+  }
+
+}
+
+// Export singleton instance
+export const apiClient = new ApiClient();
+
+// Export class for custom instances
+export { ApiClient };

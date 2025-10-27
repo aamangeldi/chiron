@@ -1,93 +1,171 @@
 # Hopscotch
 
-An AI-powered desktop application that collects your browsing history and enables intelligent interactions through a chat interface.
-
-## Current Features
-
-- **Arc Browser History Collection**: Automatic extraction of browsing history from Arc browser
-- **AI Agent**: OpenAI GPT-5 mini integration with browsing history context and web search capabilities
-- **Web Search**: Real-time web search using Tavily API for current information
-- **Chat Interface**: Minimal chat window to interact with the AI about your browsing activity and current events
-- **SQLite Storage**: Local persistence with full-text search and date filtering
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Arc browser (for history collection)
-- OpenAI API key
-- Tavily API key (for web search)
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Rebuild native modules for Electron
-npx electron-rebuild
-
-# Create .env file with your API keys following .env.example
-```
-
-### Running the App
-
-```bash
-# Build and start
-npm start
-
-# Or for development (auto-rebuild on changes)
-npm run watch
-# In another terminal:
-npm run dev
-```
-
-## How It Works
-
-1. **On Startup**: App collects last 7 days of browsing history from Arc
-2. **Periodic Sync**: History is synced every 30 minutes
-3. **Chat Interface**: Ask questions about your browsing activity or current events
-4. **AI Context**: Agent receives last 6 hours of history (max 200 entries) for context
-5. **Web Search**: For current information, the AI automatically searches the web using Tavily
+AI-powered browsing history assistant that helps you understand and interact with your web browsing patterns.
 
 ## Architecture
 
+Hopscotch is now a modern web application with:
+
+- **Frontend**: Next.js 13+ with React and Tailwind CSS
+- **Backend**: Python FastAPI with SQLAlchemy
+- **AI Integration**: OpenAI GPT-4 for intelligent insights
+- **Background Processing**: Celery with Redis for periodic sync
+- **Database**: SQLite (easily upgradeable to PostgreSQL)
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Python 3.9+
+- uv (recommended) or pip for Python dependency management
+  - Install uv: `pip install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- Redis (optional, for background tasks)
+
+### Single Command Setup & Start
+
+```bash
+# Complete setup and start development servers
+make setup && make dev
 ```
-src/
-├── shared/              # Common types and interfaces
-├── history-collector/   # Arc browser history extraction
-├── storage/            # SQLite persistence layer
-├── ai-agent/           # OpenAI GPT-5 mini integration with web search
-├── ui/                 # Electron chat window
-└── main/               # Main process orchestration
+
+### Individual Commands
+
+```bash
+# Setup everything (install dependencies, create config)
+make setup
+
+# Start both frontend and backend
+make dev
+
+# Start individual services
+make frontend   # Next.js on http://localhost:3000
+make backend    # FastAPI on http://localhost:8000
+make worker     # Celery worker
+make beat       # Celery beat scheduler
+
+# Utilities
+make clean      # Clean build artifacts
+make help       # Show all available commands
 ```
 
-## Configuration
+### Alternative: Using npm scripts
 
-Edit `src/main/index.ts` to customize:
+```bash
+# All npm scripts delegate to make commands
+npm run setup   # Same as: make setup
+npm run dev     # Same as: make dev
+npm run help    # Same as: make help
+```
 
-- `syncInterval`: History sync frequency (default: 30 minutes)
-- Context window: 6 hours, max 200 entries (in `setupIPCHandlers`)
+## Project Structure
 
-Database location: `~/.hopscotch/history.db`
+```
+hopscotch/
+├── backend/                 # Python FastAPI backend
+│   ├── app/
+│   │   ├── api/            # API endpoints
+│   │   ├── core/           # Configuration
+│   │   ├── models/         # Pydantic models
+│   │   ├── services/       # Business logic
+│   │   └── main.py         # FastAPI app
+│   ├── workers/            # Celery background tasks
+│   └── requirements.txt    # Python dependencies
+├── ui/                     # Next.js frontend
+│   ├── app/               # App router pages
+│   ├── components/        # React components
+│   └── lib/               # Utilities
+└── package.json           # Root package.json
+```
 
-## Web Search Features
+## Features
 
-The AI agent can automatically search the web for current information using Tavily:
+### 🔍 Browser History Collection
+- Automatic Chrome history extraction
+- Platform-specific path detection
+- Efficient data processing with pandas
 
-- **Weather queries**: "What's the weather in Cambridge, MA?"
-- **News and current events**: "Latest news about AI"
-- **Stock prices**: "What's the current price of AAPL?"
-- **General knowledge**: Any question requiring up-to-date information
+### 🤖 AI-Powered Insights
+- OpenAI GPT-4 integration
+- Browsing pattern analysis
+- Intelligent suggestions and recommendations
 
-The agent will automatically use the `web_search` tool when it detects queries that need current information, providing both direct answers and detailed search results.
+### 📊 Analytics Dashboard
+- Browsing statistics and trends
+- Domain analysis and categorization
+- Time-based pattern recognition
 
-## API Keys Setup
+### 🔄 Background Sync
+- Periodic history synchronization
+- Celery-based task queue
+- Error handling and retry logic
 
-1. **OpenAI API Key**: Get from [platform.openai.com](https://platform.openai.com)
-2. **Tavily API Key**: Get from [tavily.com](https://tavily.com) (free tier available)
+### 🌐 Modern Web Interface
+- Next.js 13+ with App Router
+- Responsive design with Tailwind CSS
+- Real-time updates and interactions
+
+## API Documentation
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## Development
+
+### Backend Development
+```bash
+cd backend
+python run.py                    # Start FastAPI server
+celery -A workers.celery_app worker --loglevel=info  # Start worker
+```
+
+### Frontend Development
+```bash
+cd ui
+npm run dev                     # Start Next.js dev server
+npm run build                   # Build for production
+```
+
+### Database Management
+```bash
+# The SQLite database is automatically created
+# For PostgreSQL, update DATABASE_URL in backend/.env
+```
+
+## Migration from Electron
+
+This project has been migrated from an Electron desktop app to a modern web application:
+
+- ✅ Removed Electron dependencies
+- ✅ Migrated TypeScript services to Python
+- ✅ Enhanced with FastAPI and modern Python libraries
+- ✅ Added Celery for background processing
+- ✅ Improved AI integration with OpenAI
+- ✅ Better data processing with pandas
+
+## Deployment
+
+### Backend (FastAPI)
+- Deploy to any Python hosting (Railway, Render, Heroku)
+- Set environment variables
+- Run Celery workers separately
+
+### Frontend (Next.js)
+- Deploy to Vercel, Netlify, or any static hosting
+- Update API endpoints in production
+
+### Database
+- SQLite for development
+- PostgreSQL for production
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details.

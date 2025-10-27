@@ -1,7 +1,31 @@
+# Dependencies
 node_modules/
+
+# Build artifacts
 dist/
+ui/.next/
+ui/.turbo/
+ui/out/
+
+# Logs
 *.log
+
+# OS files
 .DS_Store
+
+# Environment and secrets
 .env
+
+# Databases
 *.db
 *.sqlite
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
